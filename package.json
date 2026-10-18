@@ -1,0 +1,15 @@
+{
+  "name": "miroven-api-contract",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "author": "Miroven Project",
+  "scripts": {
+    "generate": "openapi-typescript contracts/openapi.json -o contracts/api.d.ts",
+    "typecheck": "tsc --noEmit --strict --lib ES2022,DOM contracts/contract-check.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,21 @@
+# Optional full-stack overlay; combine with compose.yaml (-f compose.yaml -f compose.web.yaml).
+# Requires the Miroven client repository checked out as a sibling directory at ../Miroven.
+# If you only cloned Miroven-API, run `docker compose up -d --build --wait` using compose.yaml alone.
+services:
+  api:
+    environment:
+      MIROVEN_PUBLIC_ORIGIN: http://localhost:8080
+  worker:
+    environment:
+      MIROVEN_PUBLIC_ORIGIN: http://localhost:8080
+  web:
+    image: miroven-web:dev
+    build:
+      context: ../Miroven
+      args:
+        NEXT_PUBLIC_APP_URL: http://localhost:8080
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      api:
+        condition: service_healthy

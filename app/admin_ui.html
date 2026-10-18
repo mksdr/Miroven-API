@@ -1,0 +1,1176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Miroven Admin Console</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #171b24;
+      --surface-2: #1f2532;
+      --border: #2b3345;
+      --text: #eef2f8;
+      --muted: #9aa5b8;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --success: #10b981;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --pro-bg: rgba(99, 102, 241, 0.16);
+      --pro-border: rgba(99, 102, 241, 0.45);
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 20px 64px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 18px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--muted);
+    }
+    .badge.pro {
+      background: var(--pro-bg);
+      border-color: var(--pro-border);
+      color: #a5b4fc;
+    }
+    .badge.ok {
+      background: rgba(16, 185, 129, 0.14);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+    }
+    .badge.warn {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fcd34d;
+    }
+    .badge.danger {
+      background: rgba(239, 68, 68, 0.14);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button, .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button:hover:not(:disabled) {
+      background: #283042;
+      border-color: #3d4861;
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    button.primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+    button.sm {
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    input, select, textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 11px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .auth-card {
+      max-width: 420px;
+      margin: 72px auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+    .auth-card h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+    .auth-card p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .form-row label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .alert {
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .alert.error {
+      border-color: rgba(239, 68, 68, 0.45);
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+    }
+    .alert.success {
+      border-color: rgba(16, 185, 129, 0.45);
+      background: rgba(16, 185, 129, 0.12);
+      color: #6ee7b7;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+    .kpi-sub {
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+    }
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 120px;
+      padding-top: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+      gap: 4px;
+      min-width: 0;
+    }
+    .bar-fill {
+      width: 100%;
+      max-width: 28px;
+      background: var(--accent);
+      border-radius: 4px 4px 0 0;
+      min-height: 2px;
+      transition: height 0.2s;
+    }
+    .bar-count {
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .bar-labels {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .bar-labels span {
+      flex: 1;
+      text-align: center;
+      font-size: 10px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .kv-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .kv-item {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .kv-item .label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .kv-item .val {
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .toolbar input[type="search"] {
+      flex: 1;
+      min-width: 220px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    th, td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    th {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+      background: var(--surface-2);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    .progress-bar {
+      width: 120px;
+      height: 6px;
+      background: var(--surface-2);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+    }
+    .progress-fill.high {
+      background: var(--danger);
+    }
+    .progress-fill.medium {
+      background: var(--warn);
+    }
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 520px;
+      padding: 24px;
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+    .modal h3 {
+      margin: 0 0 4px;
+      font-size: 16px;
+    }
+    .modal .sub {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+    .preset-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <h1>Miroven 관리자 콘솔</h1>
+        <span class="badge">E2EE 메타데이터·구독·통계</span>
+      </div>
+      <div id="headerActions" class="header-actions hidden">
+        <span id="adminEmailBadge" class="badge pro"></span>
+        <button id="refreshBtn" type="button">새로고침</button>
+        <button id="logoutBtn" type="button">로그아웃</button>
+      </div>
+    </header>
+
+    <div id="globalAlert" class="alert hidden"></div>
+
+    <!-- 로그인 뷰 -->
+    <section id="loginView" class="auth-card hidden">
+      <h2>관리자 로그인</h2>
+      <p>설정에 등록된 관리자 이메일로 6자리 인증 코드를 받아 로그인합니다.</p>
+      <div id="loginAlert" class="alert error hidden"></div>
+      <form id="requestCodeForm">
+        <div class="form-row">
+          <label for="loginEmail">관리자 이메일</label>
+          <input id="loginEmail" type="email" required placeholder="admin@example.com" autocomplete="email">
+        </div>
+        <button id="requestCodeBtn" type="submit" class="primary" style="width:100%">인증 코드 발송</button>
+      </form>
+      <form id="verifyCodeForm" class="hidden" style="margin-top:14px">
+        <div class="form-row">
+          <label for="loginCode">6자리 인증 코드</label>
+          <input id="loginCode" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required placeholder="000000" autocomplete="one-time-code">
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button id="backToEmailBtn" type="button" style="flex:1">이메일 변경</button>
+          <button id="verifyCodeBtn" type="submit" class="primary" style="flex:2">로그인</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 권한 없음 뷰 -->
+    <section id="forbiddenView" class="auth-card hidden">
+      <h2>접근 권한 없음</h2>
+      <p id="forbiddenMsg">현재 로그인된 계정은 관리자 허용 목록(MIROVEN_ADMIN_EMAILS)에 포함되어 있지 않습니다.</p>
+      <button id="forbiddenLogoutBtn" type="button" class="primary" style="width:100%">로그아웃 후 다른 계정으로 로그인</button>
+    </section>
+
+    <!-- 대시보드 뷰 -->
+    <main id="dashboardView" class="hidden">
+      <div class="grid-4">
+        <div class="card">
+          <h3><span>활성 회원</span><span id="vaultRateBadge" class="badge ok"></span></h3>
+          <div id="kpiActiveUsers" class="kpi-value">-</div>
+          <div class="kpi-sub">
+            <span id="kpiJoined24h">24h: -</span>
+            <span id="kpiJoined7d">7d: -</span>
+            <span id="kpiJoined30d">30d: -</span>
+            <span id="kpiSessions">활성 세션: -</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span>유료 구독 (Pro)</span><span id="proRateBadge" class="badge pro"></span></h3>
+          <div id="kpiProUsers" class="kpi-value">-</div>
+          <div class="kpi-sub">
+            <span id="kpiFreeUsers">Free: -</span>
+            <span id="kpiExpiring7d">7일 내 만료: -</span>
+            <span id="kpiCancelScheduled">해지 예약: -</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span>암호화 스토리지 사용량</span><span id="totalBlobsBadge" class="badge"></span></h3>
+          <div id="kpiTotalBytes" class="kpi-value">-</div>
+          <div class="kpi-sub">
+            <span id="kpiEntries">엔트리: -</span>
+            <span id="kpiChanges">변경 이력: -</span>
+            <span id="kpiSnapshots">활성 스냅샷: -</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span>시스템·작업 큐</span><span id="opsStatusBadge" class="badge ok">정상</span></h3>
+          <div id="kpiJobsPending" class="kpi-value">-</div>
+          <div class="kpi-sub">
+            <span id="kpiJobsFailed">메일 실패: -</span>
+            <span id="kpiDelPending">삭제 대기: -</span>
+            <span id="kpiDelFailed">삭제 실패: -</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3><span>최근 14일 신규 가입 추이 (UTC)</span><span id="generatedAtText" class="mono"></span></h3>
+          <div id="signupChart" class="bar-chart"></div>
+          <div id="signupLabels" class="bar-labels"></div>
+        </div>
+        <div class="card">
+          <h3><span>스토리지 쿼터 구간 분포 및 구독 상태</span></h3>
+          <div class="kv-list">
+            <div class="kv-item">
+              <div class="label">미사용 (0 B)</div>
+              <div id="bucketUnused" class="val">-</div>
+            </div>
+            <div class="kv-item">
+              <div class="label">여유 (1% ~ 49%)</div>
+              <div id="bucketLow" class="val">-</div>
+            </div>
+            <div class="kv-item">
+              <div class="label">주의 (50% ~ 79%)</div>
+              <div id="bucketMedium" class="val">-</div>
+            </div>
+            <div class="kv-item">
+              <div class="label">쿼터 임박/초과 (80%+)</div>
+              <div id="bucketHigh" class="val">-</div>
+            </div>
+          </div>
+          <div id="subStatusSummary" class="kpi-sub" style="margin-top:12px"></div>
+          <div id="failedDeletionsBox" class="hidden" style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
+            <div style="font-size:12px; font-weight:600; color:#fca5a5; margin-bottom:8px;">실패한 계정 삭제 작업</div>
+            <div id="failedDeletionsList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><span>회원 조회 및 구독(Subscribe) 관리</span><span id="userTotalCount" class="badge"></span></h3>
+        <div class="toolbar">
+          <input id="userSearchInput" type="search" placeholder="이메일 또는 사용자 UUID 검색...">
+          <select id="userPlanFilter">
+            <option value="all">모든 플랜</option>
+            <option value="pro">유효 Pro 플랜</option>
+            <option value="free">유효 Free 플랜</option>
+          </select>
+          <select id="userSortSelect">
+            <option value="created_desc">최근 가입순</option>
+            <option value="created_asc">오래된 가입순</option>
+            <option value="storage_desc">스토리지 사용량순</option>
+            <option value="entries_desc">엔트리 개수순</option>
+          </select>
+          <button id="searchUsersBtn" type="button" class="primary">조회</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>이메일 / UUID</th>
+                <th>가입일 / 상태</th>
+                <th>현재 플랜</th>
+                <th>만료 예정일</th>
+                <th>스토리지 사용량</th>
+                <th>엔트리</th>
+                <th>메모</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <span id="pageInfoText">-</span>
+          <div style="display:flex; gap:8px;">
+            <button id="prevPageBtn" type="button" class="sm">이전</button>
+            <button id="nextPageBtn" type="button" class="sm">다음</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 구독 수정 모달 -->
+  <div id="subModalBackdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>구독 및 쿼터 설정</h3>
+      <div id="modalUserSub" class="sub mono"></div>
+      <div id="modalAlert" class="alert error hidden"></div>
+      <form id="subForm">
+        <input id="modalUserId" type="hidden">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-row">
+            <label for="modalPlan">구독 플랜</label>
+            <select id="modalPlan">
+              <option value="free">Free (기본)</option>
+              <option value="pro">Pro (확장)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="modalStatus">구독 상태</label>
+            <select id="modalStatus">
+              <option value="active">active (활성)</option>
+              <option value="trialing">trialing (체험)</option>
+              <option value="past_due">past_due (결제유예)</option>
+              <option value="canceled">canceled (해지)</option>
+              <option value="expired">expired (만료)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="modalPeriodEnd">만료 일시 (비워두면 무기한)</label>
+          <input id="modalPeriodEnd" type="datetime-local">
+          <div class="preset-row">
+            <button type="button" class="sm" data-days="30">+30일</button>
+            <button type="button" class="sm" data-days="90">+90일</button>
+            <button type="button" class="sm" data-days="365">+1년</button>
+            <button type="button" class="sm" data-days="0">무기한(비우기)</button>
+          </div>
+        </div>
+
+        <div class="form-row" style="flex-direction:row; align-items:center; gap:8px;">
+          <input id="modalCancelEnd" type="checkbox">
+          <label for="modalCancelEnd" style="margin:0; color:var(--text);">현재 주기 종료 시 자동 해지 예약 (cancel_at_period_end)</label>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-row">
+            <label for="modalQuotaMiB">개별 용량 오버라이드 (MiB)</label>
+            <input id="modalQuotaMiB" type="number" min="1" max="1048576" placeholder="비워두면 플랜 기본값">
+          </div>
+          <div class="form-row">
+            <label for="modalEntriesOverride">개별 엔트리 한도 오버라이드</label>
+            <input id="modalEntriesOverride" type="number" min="1" max="10000000" placeholder="비워두면 플랜 기본값">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 2fr; gap:12px;">
+          <div class="form-row">
+            <label for="modalProvider">부여 경로 (provider)</label>
+            <input id="modalProvider" type="text" maxlength="32" value="manual" required>
+          </div>
+          <div class="form-row">
+            <label for="modalNote">관리자 메모 (선택)</label>
+            <input id="modalNote" type="text" maxlength="500" placeholder="예: 베타 테스터 / 연간 이벤트">
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="closeModalBtn" type="button">취소</button>
+          <button id="saveSubBtn" type="submit" class="primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      csrfToken: "",
+      email: "",
+      offset: 0,
+      limit: 20,
+      totalUsers: 0,
+      users: [],
+    };
+
+    const el = (id) => document.getElementById(id);
+
+    function formatBytes(bytes) {
+      const n = Number(bytes || 0);
+      if (n < 1024) return `${n} B`;
+      if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KiB`;
+      if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MiB`;
+      return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GiB`;
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "-";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
+    }
+
+    function toLocalInputValue(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "";
+      const pad = (v) => String(v).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function showGlobalAlert(msg, type = "error") {
+      const box = el("globalAlert");
+      if (!msg) {
+        box.classList.add("hidden");
+        box.textContent = "";
+        return;
+      }
+      box.className = `alert ${type}`;
+      box.textContent = msg;
+      box.classList.remove("hidden");
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = Object.assign({}, options.headers || {});
+      if (options.body && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+      }
+      if (state.csrfToken && options.method && !["GET", "HEAD"].includes(options.method.toUpperCase())) {
+        headers["X-CSRF-Token"] = state.csrfToken;
+      }
+      const response = await fetch(path, Object.assign({}, options, {
+        credentials: "same-origin",
+        headers,
+      }));
+      let data = null;
+      const text = await response.text();
+      if (text) {
+        try { data = JSON.parse(text); } catch { data = null; }
+      }
+      return { status: response.status, ok: response.ok, data };
+    }
+
+    function showView(viewId) {
+      for (const id of ["loginView", "forbiddenView", "dashboardView"]) {
+        el(id).classList.toggle("hidden", id !== viewId);
+      }
+      el("headerActions").classList.toggle("hidden", viewId !== "dashboardView");
+    }
+
+    async function checkSessionAndLoad() {
+      showGlobalAlert("");
+      const sess = await apiFetch("/api/v1/auth/session");
+      if (sess.status === 401 || !sess.ok) {
+        showView("loginView");
+        return;
+      }
+      state.csrfToken = sess.data.csrf_token;
+      state.email = sess.data.email;
+      el("adminEmailBadge").textContent = state.email;
+      await loadDashboard();
+    }
+
+    async function loadDashboard() {
+      const statsRes = await apiFetch("/api/v1/admin/stats");
+      if (statsRes.status === 401) {
+        showView("loginView");
+        return;
+      }
+      if (statsRes.status === 403) {
+        el("forbiddenMsg").textContent = `${state.email} 계정은 관리자 허용 목록(MIROVEN_ADMIN_EMAILS)에 등록되어 있지 않습니다.`;
+        showView("forbiddenView");
+        return;
+      }
+      if (!statsRes.ok) {
+        showGlobalAlert((statsRes.data && statsRes.data.message) || "통계를 불러오지 못했습니다.");
+        return;
+      }
+      showView("dashboardView");
+      renderStats(statsRes.data);
+      await loadUsers();
+    }
+
+    function renderStats(stats) {
+      const u = stats.users;
+      const s = stats.subscriptions;
+      const st = stats.storage;
+      const op = stats.operations;
+
+      el("generatedAtText").textContent = formatDate(stats.generated_at);
+      el("vaultRateBadge").textContent = `금고 등록 ${u.vault_registration_rate}% (${u.vault_registered_users}명)`;
+      el("kpiActiveUsers").textContent = `${u.active_users.toLocaleString()}명`;
+      el("kpiJoined24h").textContent = `24h: +${u.joined_24h}`;
+      el("kpiJoined7d").textContent = `7d: +${u.joined_7d}`;
+      el("kpiJoined30d").textContent = `30d: +${u.joined_30d}`;
+      el("kpiSessions").textContent = `세션: ${u.active_sessions} (${u.active_session_users}명)`;
+
+      el("proRateBadge").textContent = `전환율 ${s.pro_conversion_rate}%`;
+      el("kpiProUsers").textContent = `${s.pro_users.toLocaleString()}명`;
+      el("kpiFreeUsers").textContent = `Free: ${s.free_users.toLocaleString()}명`;
+      el("kpiExpiring7d").textContent = `7일 내 만료: ${s.expiring_7d}명`;
+      el("kpiCancelScheduled").textContent = `해지 예약: ${s.cancel_scheduled}명`;
+
+      el("totalBlobsBadge").textContent = `파일 ${st.total_blobs.toLocaleString()}개 (linked ${st.linked_blobs})`;
+      el("kpiTotalBytes").textContent = formatBytes(st.total_blob_bytes);
+      el("kpiEntries").textContent = `엔트리: ${st.active_entries.toLocaleString()} (삭제 ${st.deleted_entries})`;
+      el("kpiChanges").textContent = `이력: ${st.journal_changes.toLocaleString()}`;
+      el("kpiSnapshots").textContent = `스냅샷: ${st.active_snapshots}`;
+
+      const hasFailure = op.jobs_failed > 0 || op.deletions_failed > 0;
+      const opsBadge = el("opsStatusBadge");
+      opsBadge.textContent = hasFailure ? "확인 필요" : "정상";
+      opsBadge.className = `badge ${hasFailure ? "danger" : "ok"}`;
+      el("kpiJobsPending").textContent = `대기 작업 ${(op.jobs_pending + op.deletions_pending).toLocaleString()}건`;
+      el("kpiJobsFailed").textContent = `메일 실패: ${op.jobs_failed}`;
+      el("kpiDelPending").textContent = `삭제 대기: ${op.deletions_pending}`;
+      el("kpiDelFailed").textContent = `삭제 실패: ${op.deletions_failed}`;
+
+      // Chart
+      const chart = el("signupChart");
+      const labels = el("signupLabels");
+      chart.replaceChildren();
+      labels.replaceChildren();
+      const maxCount = Math.max(1, ...u.daily_signups.map((d) => d.count));
+      for (const item of u.daily_signups) {
+        const col = document.createElement("div");
+        col.className = "bar-col";
+        const countSpan = document.createElement("span");
+        countSpan.className = "bar-count";
+        countSpan.textContent = item.count > 0 ? String(item.count) : "";
+        const fill = document.createElement("div");
+        fill.className = "bar-fill";
+        fill.style.height = `${Math.max(3, Math.round((item.count / maxCount) * 84))}px`;
+        fill.title = `${item.date}: ${item.count}명`;
+        col.append(countSpan, fill);
+        chart.appendChild(col);
+
+        const lbl = document.createElement("span");
+        lbl.textContent = item.date.slice(5);
+        labels.appendChild(lbl);
+      }
+
+      el("bucketUnused").textContent = `${st.usage_distribution.unused}명`;
+      el("bucketLow").textContent = `${st.usage_distribution.low}명`;
+      el("bucketMedium").textContent = `${st.usage_distribution.medium}명`;
+      el("bucketHigh").textContent = `${st.usage_distribution.high}명`;
+
+      const bs = s.by_status;
+      el("subStatusSummary").textContent =
+        `구독 상태 분포 — active: ${bs.active} · trialing: ${bs.trialing} · past_due: ${bs.past_due} · canceled: ${bs.canceled} · expired: ${bs.expired}`;
+
+      const failedBox = el("failedDeletionsBox");
+      const failedList = el("failedDeletionsList");
+      failedList.replaceChildren();
+      if (op.failed_deletions.length > 0) {
+        failedBox.classList.remove("hidden");
+        for (const item of op.failed_deletions) {
+          const row = document.createElement("div");
+          row.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:12px;";
+          const info = document.createElement("span");
+          info.className = "mono";
+          info.textContent = `${item.deletion_id} (시도 ${item.attempts}회)`;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "sm";
+          btn.textContent = "재시도";
+          btn.addEventListener("click", () => retryDeletion(item.deletion_id));
+          row.append(info, btn);
+          failedList.appendChild(row);
+        }
+      } else {
+        failedBox.classList.add("hidden");
+      }
+    }
+
+    async function retryDeletion(deletionId) {
+      const res = await apiFetch(`/api/v1/admin/deletions/${encodeURIComponent(deletionId)}/retry`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        showGlobalAlert((res.data && res.data.message) || "삭제 작업 재시도에 실패했습니다.");
+        return;
+      }
+      showGlobalAlert(`삭제 작업(${deletionId})을 다시 대기열에 등록했습니다.`, "success");
+      await loadDashboard();
+    }
+
+    async function loadUsers() {
+      const q = el("userSearchInput").value.trim();
+      const plan = el("userPlanFilter").value;
+      const sort = el("userSortSelect").value;
+      const params = new URLSearchParams({
+        plan,
+        sort,
+        limit: String(state.limit),
+        offset: String(state.offset),
+      });
+      if (q) params.set("q", q);
+      const res = await apiFetch(`/api/v1/admin/users?${params.toString()}`);
+      if (!res.ok) {
+        showGlobalAlert((res.data && res.data.message) || "회원 목록을 불러오지 못했습니다.");
+        return;
+      }
+      state.totalUsers = res.data.total;
+      state.users = res.data.items;
+      renderUsersTable();
+    }
+
+    function renderUsersTable() {
+      el("userTotalCount").textContent = `총 ${state.totalUsers.toLocaleString()}명`;
+      const tbody = el("usersTableBody");
+      tbody.replaceChildren();
+
+      if (state.users.length === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 8;
+        td.style.textAlign = "center";
+        td.style.color = "var(--muted)";
+        td.style.padding = "28px";
+        td.textContent = "조건에 일치하는 회원이 없습니다.";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      } else {
+        for (const u of state.users) {
+          const tr = document.createElement("tr");
+
+          // 1. 이메일 / UUID
+          const tdIdentity = document.createElement("td");
+          const emailDiv = document.createElement("div");
+          emailDiv.style.fontWeight = "600";
+          emailDiv.textContent = u.email;
+          const uuidDiv = document.createElement("div");
+          uuidDiv.className = "mono";
+          uuidDiv.style.color = "var(--muted)";
+          uuidDiv.textContent = u.user_id;
+          tdIdentity.append(emailDiv, uuidDiv);
+
+          // 2. 가입일 / 상태
+          const tdJoined = document.createElement("td");
+          const dateDiv = document.createElement("div");
+          dateDiv.textContent = formatDate(u.created_at);
+          const metaDiv = document.createElement("div");
+          metaDiv.style.marginTop = "4px";
+          metaDiv.style.display = "flex";
+          metaDiv.style.gap = "4px";
+          if (u.deleting_at) {
+            const b = document.createElement("span");
+            b.className = "badge danger";
+            b.textContent = "삭제진행중";
+            metaDiv.appendChild(b);
+          } else {
+            const b = document.createElement("span");
+            b.className = `badge ${u.has_vault ? "ok" : "warn"}`;
+            b.textContent = u.has_vault ? "금고등록" : "금고미등록";
+            metaDiv.appendChild(b);
+          }
+          const sessBadge = document.createElement("span");
+          sessBadge.className = "badge";
+          sessBadge.textContent = `세션 ${u.active_sessions}`;
+          metaDiv.appendChild(sessBadge);
+          tdJoined.append(dateDiv, metaDiv);
+
+          // 3. 플랜
+          const tdPlan = document.createElement("td");
+          const planBadge = document.createElement("span");
+          planBadge.className = `badge ${u.plan === "pro" ? "pro" : ""}`;
+          planBadge.textContent = u.plan.toUpperCase();
+          const stBadge = document.createElement("span");
+          stBadge.className = `badge ${u.subscription_status === "active" || u.subscription_status === "trialing" ? "ok" : "warn"}`;
+          stBadge.style.marginLeft = "4px";
+          stBadge.textContent = u.subscription_status;
+          tdPlan.append(planBadge, stBadge);
+          if (u.configured_plan !== u.plan) {
+            const subNote = document.createElement("div");
+            subNote.style.fontSize = "11px";
+            subNote.style.color = "var(--muted)";
+            subNote.textContent = `설정값: ${u.configured_plan}`;
+            tdPlan.appendChild(subNote);
+          }
+
+          // 4. 만료 예정일
+          const tdPeriod = document.createElement("td");
+          tdPeriod.textContent = u.current_period_end ? formatDate(u.current_period_end) : "무기한";
+          if (u.cancel_at_period_end) {
+            const cDiv = document.createElement("div");
+            cDiv.style.fontSize = "11px";
+            cDiv.style.color = "#fcd34d";
+            cDiv.textContent = "만료 시 해지 예약";
+            tdPeriod.appendChild(cDiv);
+          }
+
+          // 5. 스토리지 사용량
+          const tdStorage = document.createElement("td");
+          const ratio = u.storage_limit_bytes > 0 ? Math.min(100, Math.round((u.storage_bytes / u.storage_limit_bytes) * 100)) : 0;
+          const stText = document.createElement("div");
+          stText.textContent = `${formatBytes(u.storage_bytes)} / ${formatBytes(u.storage_limit_bytes)} (${ratio}%)`;
+          const bar = document.createElement("div");
+          bar.className = "progress-bar";
+          const fill = document.createElement("div");
+          fill.className = `progress-fill ${ratio >= 80 ? "high" : ratio >= 50 ? "medium" : ""}`;
+          fill.style.width = `${ratio}%`;
+          bar.appendChild(fill);
+          tdStorage.append(stText, bar);
+
+          // 6. 엔트리
+          const tdEntries = document.createElement("td");
+          tdEntries.textContent = `${u.entries.toLocaleString()} / ${u.entry_limit.toLocaleString()}`;
+
+          // 7. 메모
+          const tdNote = document.createElement("td");
+          tdNote.style.maxWidth = "180px";
+          tdNote.style.overflow = "hidden";
+          tdNote.style.textOverflow = "ellipsis";
+          tdNote.textContent = u.note || "-";
+
+          // 8. 관리 버튼
+          const tdAction = document.createElement("td");
+          const editBtn = document.createElement("button");
+          editBtn.type = "button";
+          editBtn.className = "sm";
+          editBtn.textContent = "구독 설정";
+          editBtn.disabled = Boolean(u.deleting_at);
+          editBtn.addEventListener("click", () => openSubModal(u));
+          tdAction.appendChild(editBtn);
+
+          tr.append(tdIdentity, tdJoined, tdPlan, tdPeriod, tdStorage, tdEntries, tdNote, tdAction);
+          tbody.appendChild(tr);
+        }
+      }
+
+      const start = state.totalUsers === 0 ? 0 : state.offset + 1;
+      const end = Math.min(state.totalUsers, state.offset + state.users.length);
+      el("pageInfoText").textContent = `${start} - ${end} / 총 ${state.totalUsers}명`;
+      el("prevPageBtn").disabled = state.offset <= 0;
+      el("nextPageBtn").disabled = state.offset + state.limit >= state.totalUsers;
+    }
+
+    function openSubModal(user) {
+      el("modalAlert").classList.add("hidden");
+      el("modalUserId").value = user.user_id;
+      el("modalUserSub").textContent = `${user.email} (${user.user_id})`;
+      el("modalPlan").value = user.configured_plan;
+      el("modalStatus").value = user.subscription_status;
+      el("modalPeriodEnd").value = toLocalInputValue(user.current_period_end);
+      el("modalCancelEnd").checked = Boolean(user.cancel_at_period_end);
+      el("modalQuotaMiB").value = user.storage_quota_override_bytes
+        ? String(Math.round(user.storage_quota_override_bytes / (1024 * 1024)))
+        : "";
+      el("modalEntriesOverride").value = user.max_entries_override ? String(user.max_entries_override) : "";
+      el("modalProvider").value = user.provider || "manual";
+      el("modalNote").value = user.note || "";
+      el("subModalBackdrop").classList.remove("hidden");
+    }
+
+    function closeSubModal() {
+      el("subModalBackdrop").classList.add("hidden");
+    }
+
+    // 이벤트 바인딩
+    el("requestCodeForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = el("loginEmail").value.trim();
+      if (!email) return;
+      el("loginAlert").classList.add("hidden");
+      el("requestCodeBtn").disabled = true;
+      const res = await apiFetch("/api/v1/auth/code/request", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      el("requestCodeBtn").disabled = false;
+      if (!res.ok) {
+        el("loginAlert").textContent = (res.data && res.data.message) || "코드 요청에 실패했습니다.";
+        el("loginAlert").classList.remove("hidden");
+        return;
+      }
+      el("requestCodeForm").classList.add("hidden");
+      el("verifyCodeForm").classList.remove("hidden");
+      el("loginCode").focus();
+    });
+
+    el("backToEmailBtn").addEventListener("click", () => {
+      el("verifyCodeForm").classList.add("hidden");
+      el("requestCodeForm").classList.remove("hidden");
+    });
+
+    el("verifyCodeForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = el("loginEmail").value.trim();
+      const code = el("loginCode").value.trim();
+      el("loginAlert").classList.add("hidden");
+      el("verifyCodeBtn").disabled = true;
+      const res = await apiFetch("/api/v1/auth/code/verify", {
+        method: "POST",
+        body: JSON.stringify({ email, code }),
+      });
+      el("verifyCodeBtn").disabled = false;
+      if (!res.ok) {
+        el("loginAlert").textContent = (res.data && res.data.message) || "인증 코드가 올바르지 않거나 만료되었습니다.";
+        el("loginAlert").classList.remove("hidden");
+        return;
+      }
+      state.csrfToken = res.data.csrf_token;
+      state.email = res.data.email;
+      el("loginCode").value = "";
+      el("verifyCodeForm").classList.add("hidden");
+      el("requestCodeForm").classList.remove("hidden");
+      el("adminEmailBadge").textContent = state.email;
+      await loadDashboard();
+    });
+
+    async function handleLogout() {
+      await apiFetch("/api/v1/auth/logout", { method: "POST" });
+      state.csrfToken = "";
+      state.email = "";
+      showView("loginView");
+    }
+
+    el("logoutBtn").addEventListener("click", handleLogout);
+    el("forbiddenLogoutBtn").addEventListener("click", handleLogout);
+    el("refreshBtn").addEventListener("click", loadDashboard);
+
+    el("searchUsersBtn").addEventListener("click", () => {
+      state.offset = 0;
+      loadUsers();
+    });
+    el("userSearchInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        state.offset = 0;
+        loadUsers();
+      }
+    });
+    el("userPlanFilter").addEventListener("change", () => {
+      state.offset = 0;
+      loadUsers();
+    });
+    el("userSortSelect").addEventListener("change", () => {
+      state.offset = 0;
+      loadUsers();
+    });
+    el("prevPageBtn").addEventListener("click", () => {
+      state.offset = Math.max(0, state.offset - state.limit);
+      loadUsers();
+    });
+    el("nextPageBtn").addEventListener("click", () => {
+      state.offset += state.limit;
+      loadUsers();
+    });
+
+    el("closeModalBtn").addEventListener("click", closeSubModal);
+    document.querySelectorAll("[data-days]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const days = Number(btn.getAttribute("data-days"));
+        if (!days) {
+          el("modalPeriodEnd").value = "";
+          return;
+        }
+        const target = new Date(Date.now() + days * 86400 * 1000);
+        el("modalPeriodEnd").value = toLocalInputValue(target.toISOString());
+        el("modalPlan").value = "pro";
+        el("modalStatus").value = "active";
+      });
+    });
+
+    el("subForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const userId = el("modalUserId").value;
+      const quotaMiB = el("modalQuotaMiB").value.trim();
+      const entriesOverride = el("modalEntriesOverride").value.trim();
+      const periodEndRaw = el("modalPeriodEnd").value.trim();
+
+      const payload = {
+        plan: el("modalPlan").value,
+        status: el("modalStatus").value,
+        storage_quota_override_bytes: quotaMiB ? Number(quotaMiB) * 1024 * 1024 : null,
+        max_entries_override: entriesOverride ? Number(entriesOverride) : null,
+        current_period_start: null,
+        current_period_end: periodEndRaw ? new Date(periodEndRaw).toISOString() : null,
+        cancel_at_period_end: el("modalCancelEnd").checked,
+        provider: el("modalProvider").value.trim() || "manual",
+        note: el("modalNote").value.trim() || null,
+      };
+
+      el("saveSubBtn").disabled = true;
+      const res = await apiFetch(`/api/v1/admin/users/${encodeURIComponent(userId)}/subscription`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      el("saveSubBtn").disabled = false;
+      if (!res.ok) {
+        el("modalAlert").textContent = (res.data && res.data.message) || "구독 저장에 실패했습니다.";
+        el("modalAlert").classList.remove("hidden");
+        return;
+      }
+      closeSubModal();
+      showGlobalAlert("구독 및 쿼터 설정이 저장되었습니다.", "success");
+      await loadDashboard();
+    });
+
+    checkSessionAndLoad();
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Optional local browser integration overlay; combine with compose.yaml (-f compose.yaml -f compose.split-dev.yaml)
+# when running the Miroven web client dev server separately on port 3100.
+# If you only cloned Miroven-API, use compose.yaml alone.
+services:
+  api:
+    environment:
+      MIROVEN_PUBLIC_ORIGIN: http://127.0.0.1:3100
+      MIROVEN_API_ORIGIN: http://127.0.0.1:8000
+  worker:
+    environment:
+      MIROVEN_PUBLIC_ORIGIN: http://127.0.0.1:3100
+      MIROVEN_API_ORIGIN: http://127.0.0.1:8000

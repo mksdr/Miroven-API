@@ -1,0 +1,37 @@
+{
+  "environment": "Windows host to Docker Desktop Linux API; PostgreSQL 17.11; loopback HTTP; no TLS",
+  "unauthenticated": {
+    "measured_at": "2026-10-17T15:15:13.360749+00:00",
+    "path": "/api/v1/auth/session",
+    "requests": 100,
+    "concurrency": 4,
+    "elapsed_seconds": 0.106,
+    "requests_per_second": 939.23,
+    "latency_ms": {
+      "p50": 3.79,
+      "p95": 5.3,
+      "max": 25.82
+    },
+    "statuses": {
+      "401": 100
+    },
+    "failed_requests": 0
+  },
+  "authenticated_usage": {
+    "measured_at": "2026-10-17T15:15:13.756506+00:00",
+    "path": "/api/v1/account/usage",
+    "requests": 100,
+    "concurrency": 4,
+    "elapsed_seconds": 0.366,
+    "requests_per_second": 273.32,
+    "latency_ms": {
+      "p50": 14.36,
+      "p95": 21.27,
+      "max": 31.62
+    },
+    "statuses": {
+      "200": 100
+    },
+    "failed_requests": 0
+  }
+}

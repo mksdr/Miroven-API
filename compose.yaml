@@ -1,0 +1,68 @@
+name: miroven-dev
+
+x-api: &api
+  image: miroven-api:dev
+  build: .
+  env_file: .env
+  volumes:
+    - blob_data:/data/blobs
+  environment:
+    MIROVEN_ENVIRONMENT: development
+    MIROVEN_DATABASE_URL: postgresql+psycopg://miroven:miroven_dev@db:5432/miroven
+    MIROVEN_SMTP_HOST: mailpit
+    MIROVEN_SMTP_PORT: 1025
+    MIROVEN_SMTP_STARTTLS: "false"
+    MIROVEN_BLOB_DIRECTORY: /data/blobs
+
+services:
+  db:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_USER: miroven
+      POSTGRES_PASSWORD: miroven_dev
+      POSTGRES_DB: miroven
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U miroven -d miroven"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "127.0.0.1:5432:5432"
+  migrate:
+    <<: *api
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    <<: *api
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  worker:
+    <<: *api
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+    restart: unless-stopped
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+
+volumes:
+  postgres_data:
+  blob_data:

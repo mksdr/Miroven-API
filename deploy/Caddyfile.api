@@ -1,0 +1,14 @@
+{
+    log default {
+        output discard
+    }
+}
+{$MIROVEN_DOMAIN} {
+    @api path /api/* /admin
+    handle @api {
+        reverse_proxy api:8000
+    }
+    handle {
+        respond 404
+    }
+}

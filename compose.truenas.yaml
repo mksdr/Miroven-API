@@ -1,0 +1,74 @@
+# Standalone API production stack (API + worker + PostgreSQL + Caddy; no web container).
+# Use with .env.truenas.example when hosting the web client separately.
+name: miroven
+
+x-api: &api
+  image: ${MIROVEN_API_IMAGE:?Set a versioned API image or image digest}
+  env_file: ${MIROVEN_ENV_FILE:-.env.production}
+  environment:
+    MIROVEN_ENVIRONMENT: production
+    MIROVEN_STORAGE_BACKEND: local
+    MIROVEN_BLOB_DIRECTORY: /data/blobs
+    # Only Caddy exposes ports. Caddy overwrites untrusted forwarded headers.
+    MIROVEN_TRUSTED_PROXY_IPS: "*"
+  volumes:
+    - blob_data:/data/blobs
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+services:
+  db:
+    image: postgres:17.11-alpine
+    command: ["postgres", "-c", "log_statement=none", "-c", "log_min_error_statement=panic", "-c", "log_error_verbosity=terse", "-c", "log_parameter_max_length_on_error=0", "-c", "log_min_messages=fatal"]
+    environment:
+      POSTGRES_USER: miroven
+      POSTGRES_DB: miroven
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a generated database password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U miroven -d miroven"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+  migrate:
+    <<: *api
+    command: ["python", "-m", "app.migrate"]
+    depends_on:
+      db: {condition: service_healthy}
+  api:
+    <<: *api
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+  worker:
+    <<: *api
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    restart: unless-stopped
+  proxy:
+    image: caddy:2.10.2-alpine
+    environment:
+      MIROVEN_DOMAIN: ${MIROVEN_DOMAIN:?Set the public hostname}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/Caddyfile.api:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  blob_data:
+  caddy_data:
+  caddy_config:
