@@ -1,5 +1,6 @@
-# Combined production stack (API + worker + PostgreSQL + Miroven web container + Caddy).
-# For an API-only deployment without the web container, see compose.truenas.yaml.
+# Combined production stack (API + worker + PostgreSQL + Miroven web container + Caddy on 80/443).
+# For an API-only direct-HTTPS stack (80/443), see compose.api.yaml.
+# For TrueNAS 25.10 Custom App + Cloudflare Tunnel + ZFS snapshots, see deploy/truenas/.
 name: miroven
 
 x-api: &api

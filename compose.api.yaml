@@ -1,5 +1,6 @@
-# Standalone API production stack (API + worker + PostgreSQL + Caddy; no web container).
-# Use with .env.truenas.example when hosting the web client separately.
+# Standalone API production stack with direct HTTPS on ports 80/443 (API + worker + PostgreSQL + Caddy; no web container).
+# Use with .env.api.example when hosting the web client separately and exposing ports 80/443 directly.
+# For TrueNAS 25.10 Custom App + Cloudflare Tunnel (no host port publishing) + ZFS snapshots, use deploy/truenas/ instead.
 name: miroven
 
 x-api: &api

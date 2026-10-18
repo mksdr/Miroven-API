@@ -1,0 +1,29 @@
+{
+    admin off
+    auto_https off
+    log default {
+        output discard
+    }
+}
+
+:8080 {
+    @missing_ip not header CF-Connecting-IP *
+    @public path /api/* /admin
+
+    route {
+        respond @missing_ip 403
+        handle @public {
+            reverse_proxy api:8000 {
+                # Reachable only by cloudflared on the ingress network.
+                # Replace user-supplied forwarding headers with Cloudflare's client IP.
+                header_up X-Forwarded-For {http.request.header.CF-Connecting-IP}
+                header_up X-Real-IP {http.request.header.CF-Connecting-IP}
+                header_up X-Forwarded-Proto https
+                header_up -Forwarded
+            }
+        }
+        handle {
+            respond 404
+        }
+    }
+}

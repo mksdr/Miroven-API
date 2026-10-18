@@ -10,7 +10,7 @@ __pycache__/
 .env.*
 !.env.example
 !.env.production.example
-!.env.truenas.example
+!.env.api.example
 backups/
 node_modules/
 data/
