@@ -25,8 +25,10 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import UTC, datetime
+from email.utils import getaddresses
 from pathlib import Path
 
 
@@ -144,6 +146,22 @@ def compose_for(manifest):
     return config
 
 
+def uses_example_domain(key, value):
+    if key in ("MIROVEN_PUBLIC_ORIGIN", "MIROVEN_API_ORIGIN"):
+        hosts = [urllib.parse.urlsplit(value).hostname or ""]
+    elif key == "MIROVEN_SMTP_HOST":
+        hosts = [value]
+    elif key in ("MIROVEN_SMTP_FROM", "MIROVEN_SMTP_USERNAME", "MIROVEN_ADMIN_EMAILS"):
+        hosts = [address.rpartition("@")[2] for _, address in getaddresses([value])]
+    else:
+        return False
+    for host in hosts:
+        host = host.lower().rstrip(".")
+        if host == "example.com" or host.endswith(".example.com"):
+            return True
+    return False
+
+
 def preflight():
     if not re.fullmatch(r"[a-zA-Z0-9._-]+(?:/[a-zA-Z0-9._-]+)+", DATASET):
         raise ValueError("Invalid ZFS dataset name")
@@ -169,7 +187,7 @@ def preflight():
             key, value = line.split("=", 1)
             key = key.strip()
             value = value.strip()
-            if "REPLACE" in value or "example.com" in value:
+            if "REPLACE" in value or uses_example_domain(key, value):
                 raise ValueError("Replace example environment values")
             values[key] = value
     password = values.get("POSTGRES_PASSWORD", "")
@@ -355,6 +373,18 @@ def prune():
             print(f"expired_snapshot:{name}")
 
 
+def write_secret(path, text, *, uid=0, gid=0, mode=0o600):
+    # O_EXCL refuses existing files, including symlinks. Restrict access at creation,
+    # independently of the caller's umask, and set metadata before writing any secret.
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
+    with os.fdopen(fd, "w", encoding="utf-8") as stream:
+        os.fchown(stream.fileno(), uid, gid)
+        os.fchmod(stream.fileno(), mode)
+        stream.write(text)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
 def init(template_dir=None):
     if not re.fullmatch(r"[a-zA-Z0-9._-]+(?:/[a-zA-Z0-9._-]+)+", DATASET):
         raise ValueError("Invalid ZFS dataset name")
@@ -407,20 +437,16 @@ def init(template_dir=None):
             text = example.read_text(encoding="utf-8")
             text = text.replace("REPLACE_WITH_RANDOM_64_HEX", key)
             text = text.replace("REPLACE_WITH_RANDOM_HEX", password)
-            with dst.open("x", encoding="utf-8") as stream:
-                stream.write(text)
-            os.chown(dst, 0, 0)
-            os.chmod(dst, 0o600)
+            write_secret(dst, text)
     elif db_env.exists() != api_env.exists():
         raise ValueError("Incomplete secret environment files; inspect secrets directory")
     token_path = ROOT / "secrets" / "tunnel-token"
     if not token_path.exists() and sys.stdin.isatty():
         token = getpass.getpass("Cloudflare Tunnel token (leave blank to skip): ").strip()
         if token:
-            with token_path.open("x", encoding="utf-8") as stream:
-                stream.write(token + "\n")
-            os.chown(token_path, 65532, 65532)
-            os.chmod(token_path, 0o400)
+            # Intentional credential provisioning: cloudflared --token-file requires
+            # the original token. See the Wiki's API-Deployment security exception.
+            write_secret(token_path, token + "\n", uid=65532, gid=65532, mode=0o400)
     print("initialized")
 
 
