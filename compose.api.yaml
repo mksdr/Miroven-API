@@ -56,7 +56,7 @@ services:
       migrate: {condition: service_completed_successfully}
     restart: unless-stopped
   proxy:
-    image: caddy:2.10.2-alpine
+    image: caddy:2.11.7-alpine
     environment:
       MIROVEN_DOMAIN: ${MIROVEN_DOMAIN:?Set the public hostname}
     ports: ["80:80", "443:443"]
