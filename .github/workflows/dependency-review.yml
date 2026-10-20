@@ -25,7 +25,7 @@ jobs:
         revision: ${{ fromJSON(github.event_name == 'pull_request_target' && '["base", "head"]' || '["head"]') }}
     steps:
       - name: Download only the lockfile
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           SNAPSHOT_SHA: ${{ matrix.revision == 'base' && github.event.pull_request.base.sha || github.event.pull_request.head.sha || github.sha }}
         with:
