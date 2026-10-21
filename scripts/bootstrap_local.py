@@ -20,7 +20,8 @@ env_file.write_text(
     "MIROVEN_ENVIRONMENT=development\n"
     f"MIROVEN_DATABASE_URL=postgresql+psycopg://miroven:{password}@127.0.0.1:55432/miroven\n"
     f"MIROVEN_SECRET_KEY={secret}\n"
-    "MIROVEN_PUBLIC_ORIGIN=http://localhost:8000\n",
+    "MIROVEN_PUBLIC_ORIGIN=http://localhost:8000\n"
+    "MIROVEN_EMAIL_DOMAINS_DEFAULT=example.com\n",
     encoding="utf-8",
 )
 print("Created ignored local development settings (.env and .runtime/pg-password).")

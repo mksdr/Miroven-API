@@ -12,6 +12,8 @@ x-api: &api
     MIROVEN_SMTP_HOST: mailpit
     MIROVEN_SMTP_PORT: 1025
     MIROVEN_SMTP_STARTTLS: "false"
+    # Synthetic accounts are delivered only to local Mailpit; never copy to production.
+    MIROVEN_EMAIL_DOMAINS_DEFAULT: ${MIROVEN_EMAIL_DOMAINS_DEFAULT:-example.com}
     MIROVEN_BLOB_DIRECTORY: /data/blobs
 
 services:

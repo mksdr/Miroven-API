@@ -26,7 +26,9 @@ def postgres_settings():
         pytest.skip("Set TEST_DATABASE_URL to a dedicated PostgreSQL database ending in _test")
     if not (make_url(url).database or "").endswith("_test"):
         pytest.fail("Refusing destructive cleanup: test database name must end in _test")
-    return Settings(_env_file=None, environment="test", database_url=url)
+    return Settings(
+        _env_file=None, environment="test", database_url=url, email_domains_default="example.com"
+    )
 
 
 @pytest.fixture(scope="session")

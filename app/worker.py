@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.account import process_deletion, retry_deletion
 from app.config import get_settings
 from app.db import build_engine
+from app.email.render import render_verification_email
 from app.maintenance import sweep
 from app.models import AccountDeletion, AuthSession, Job, LoginChallenge, RateWindow
 from app.observability import LOG_CONFIG
@@ -27,12 +28,9 @@ def send_email(settings, payload):
     message = EmailMessage()
     message["From"] = settings.smtp_from
     message["To"] = payload["email"]
-    message["Subject"] = "Your Miroven sign-in code"
-    message.set_content(
-        f"Your Miroven sign-in code is {payload['code']}.\n"
-        "It expires shortly. Do not share it with anyone.\n"
-        "This code signs in to your account; it cannot unlock an encrypted vault."
-    )
+    subject, body = render_verification_email(payload)
+    message["Subject"] = subject
+    message.set_content(body, charset="utf-8")
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=5) as smtp:
         if settings.smtp_starttls:
             smtp.starttls(context=ssl.create_default_context())

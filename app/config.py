@@ -3,9 +3,12 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import SecretStr, model_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
+
+from app.email.policy import DEFAULT_GROUPS, normalize_domains
+from app.email.render import validate_catalogs
 
 DEV_SECRET = "development-only-change-before-deploying-000000000000"
 
@@ -28,6 +31,9 @@ class Settings(BaseSettings):
     code_resend_seconds: int = 60
     email_hourly_limit: int = 5
     ip_hourly_limit: int = 30
+    email_domains_default: str = ",".join(DEFAULT_GROUPS["DEFAULT"])
+    email_domains_kr: str = ",".join(DEFAULT_GROUPS["KR"])
+    email_domains_jp: str = ",".join(DEFAULT_GROUPS["JP"])
     smtp_host: str = "127.0.0.1"
     smtp_port: int = 1025
     smtp_from: str = "Miroven <noreply@localhost>"
@@ -54,8 +60,17 @@ class Settings(BaseSettings):
     s3_access_key: SecretStr | None = None
     s3_secret_key: SecretStr | None = None
 
+    @field_validator("email_domains_default", "email_domains_kr", "email_domains_jp")
+    @classmethod
+    def validate_email_domains(cls, value: str) -> str:
+        return normalize_domains(value)
+
     @model_validator(mode="after")
     def validate_configuration(self):
+        domains = [domain for group in self.email_domain_groups.values() for domain in group]
+        if not domains or len(domains) != len(set(domains)):
+            raise ValueError("Email policy must be nonempty with no domains shared between groups")
+        validate_catalogs()
         url = make_url(self.database_url.get_secret_value())
         if url.drivername != "postgresql+psycopg":
             raise ValueError("PostgreSQL with psycopg is required")
@@ -128,6 +143,14 @@ class Settings(BaseSettings):
             if self.smtp_username and not self.smtp_starttls:
                 raise ValueError("SMTP authentication requires STARTTLS")
         return self
+
+    @property
+    def email_domain_groups(self) -> dict[str, list[str]]:
+        return {
+            "DEFAULT": self.email_domains_default.split(",") if self.email_domains_default else [],
+            "KR": self.email_domains_kr.split(",") if self.email_domains_kr else [],
+            "JP": self.email_domains_jp.split(",") if self.email_domains_jp else [],
+        }
 
     @property
     def secure_cookies(self) -> bool:

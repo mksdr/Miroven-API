@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.email.policy import BLOCKED_LOCAL_PART_CHARACTERS
+
 
 class Contract(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -22,6 +24,21 @@ class HealthResponse(Contract):
 
 class CodeRequest(Contract):
     email: Annotated[EmailStr, Field(max_length=320)]
+
+
+class EmailDomainGroups(Contract):
+    DEFAULT: list[str]
+    KR: list[str]
+    JP: list[str]
+
+
+class AuthPolicyResponse(Contract):
+    domain_groups: EmailDomainGroups
+    default_email_locale: Literal["en"] = "en"
+    existing_accounts_allowed: Literal[True] = True
+    blocked_local_part_characters: list[Literal["+", "."]] = Field(
+        default_factory=lambda: list(BLOCKED_LOCAL_PART_CHARACTERS)
+    )
 
 
 class CodeVerify(CodeRequest):
