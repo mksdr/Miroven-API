@@ -10,13 +10,13 @@ authors = [
 ]
 dependencies = [
     "alembic==1.20.0",
-    "boto3==1.43.114",
+    "boto3==1.43.115",
     "cryptography==50.0.2",
     "email-validator==2.3.0",
-    "fastapi==0.143.3",
+    "fastapi==0.153.0",
     "psycopg[binary]==3.3.6",
-    "pydantic-settings==2.16.0",
-    "sqlalchemy==2.0.55",
+    "pydantic-settings==2.16.1",
+    "sqlalchemy==2.1.5",
     "uvicorn[standard]==0.54.0",
 ]
 
