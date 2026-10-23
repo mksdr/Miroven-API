@@ -20,7 +20,7 @@ x-api: &api
 
 services:
   db:
-    image: postgres:17.11-alpine
+    image: postgres:18.4-alpine
     command: ["postgres", "-c", "log_statement=none", "-c", "log_min_error_statement=panic", "-c", "log_error_verbosity=terse", "-c", "log_parameter_max_length_on_error=0", "-c", "log_min_messages=fatal"]
     environment:
       POSTGRES_USER: miroven
