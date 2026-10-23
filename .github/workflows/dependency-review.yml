@@ -40,7 +40,7 @@ jobs:
             }
             require('node:fs').writeFileSync('uv.lock', Buffer.from(data.content, 'base64'));
       - name: Submit Python dependencies
-        uses: advanced-security/component-detection-dependency-submission-action@v0.1.5
+        uses: advanced-security/component-detection-dependency-submission-action@v0.2.0
         with:
           detectorsFilter: UvLock
           detectorArgs: UvLock=EnableIfDefaultOff
