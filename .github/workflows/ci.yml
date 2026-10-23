@@ -31,6 +31,8 @@ jobs:
           cache: npm
       - run: python -m pip install uv==0.13.1
       - run: uv sync --locked
+      - run: python -m unittest discover -s .github/scripts -p 'test_*.py'
+      - run: python .github/scripts/release_policy.py
       - run: uv run ruff check app scripts tests migrations deploy/truenas/manage.py
       - run: uv run ruff format --check app scripts tests migrations deploy/truenas/manage.py
       - run: uv run pytest -q
@@ -77,15 +79,26 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          python3 .github/scripts/release_policy.py --tag "$RELEASE_TAG"
           echo "image=ghcr.io/${REPO,,}" >> "$GITHUB_OUTPUT"
+      - name: Inspect existing release for safe retries
+        id: existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 .github/scripts/api_release.py inspect
       - uses: docker/setup-qemu-action@v3
+        if: steps.existing.outputs.published != 'true'
       - uses: docker/setup-buildx-action@v3
+        if: steps.existing.outputs.published != 'true'
       - uses: docker/login-action@v3
+        if: steps.existing.outputs.published != 'true'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and publish tested image
+        if: steps.existing.outputs.published != 'true'
         id: image
         uses: docker/build-push-action@v6
         with:
@@ -99,27 +112,10 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.licenses=AGPL-3.0-only
-      - name: Write immutable deployment descriptor
-        env:
-          IMAGE_NAME: ${{ steps.meta.outputs.image }}
-          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          python - <<'PY'
-          import json, os
-          from pathlib import Path
-          Path("deployment.json").write_text(json.dumps({
-              "schema": 1,
-              "image": os.environ["IMAGE_NAME"] + "@" + os.environ["IMAGE_DIGEST"],
-              "commit": os.environ["GITHUB_SHA"],
-              "tag": os.environ["RELEASE_TAG"],
-          }, indent=2) + "\n")
-          PY
       - name: Publish release after its descriptor is uploaded
+        if: steps.existing.outputs.published != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          gh release create "$RELEASE_TAG" --verify-tag --draft --generate-notes
-          gh release upload "$RELEASE_TAG" deployment.json
-          gh release edit "$RELEASE_TAG" --draft=false --latest
+        run: python3 .github/scripts/api_release.py publish

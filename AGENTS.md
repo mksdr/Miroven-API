@@ -2,6 +2,8 @@
 
 ## Scope and workflow
 
+- Follow Conventional Commits for PR titles and final main-branch commits; see CONTRIBUTING.md. Preserve existing history and use squash PR titles.
+- Follow .github/RELEASING.md for automated versions/releases. Do not manually bump isolated version fields or publish tags without matching metadata and required checks.
 - Miroven-API provides email authentication/sessions, encrypted synchronization, and blob storage/cleanup. FastAPI code lives in `app/`.
 - The sibling `../Miroven/` is the journal client; its application lives in `web/`. `../Miroven-Web/` is the public website.
 - Follow `pyproject.toml`, `package.json`, and lockfiles for runtime/tool requirements. Commands run from this repository root unless stated otherwise.
