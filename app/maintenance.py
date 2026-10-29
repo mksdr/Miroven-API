@@ -17,6 +17,7 @@ from app.models import (
     SyncState,
     User,
 )
+from app.sync_budgets import document_size
 
 
 def no_references():
@@ -71,10 +72,12 @@ def sweep(engine, settings, storage, batch_size=100):
                     .limit(1000)
                 )
                 floor = state.floor
+                released_bytes = 0
                 for row in rows:
                     if row.created_at >= cutoff:
                         break
                     floor = row.cursor
+                    released_bytes += document_size(row.document)
                 if floor > state.floor:
                     db.execute(
                         delete(JournalChange).where(
@@ -83,6 +86,7 @@ def sweep(engine, settings, storage, batch_size=100):
                         )
                     )
                     state.floor = floor
+                    state.document_bytes -= released_bytes
             db.flush()
             blobs = db.scalars(
                 select(BlobObject)

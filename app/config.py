@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     snapshot_ttl_seconds: int = 3600
     max_snapshots: int = 5
     max_entries: int = 10000
+    sync_storage_quota_bytes: int = 128 * 1024 * 1024
+    sync_operation_limit: int = 1_000_000
+    sync_hourly_operations: int = 20000
+    sync_hourly_bytes: int = 64 * 1024 * 1024
     pro_blob_max_bytes: int = 16 * 1024 * 1024
     pro_storage_quota_bytes: int = 5 * 1024 * 1024 * 1024
     pro_max_entries: int = 100000
@@ -114,6 +118,10 @@ class Settings(BaseSettings):
             self.snapshot_ttl_seconds,
             self.max_snapshots,
             self.max_entries,
+            self.sync_storage_quota_bytes,
+            self.sync_operation_limit,
+            self.sync_hourly_operations,
+            self.sync_hourly_bytes,
             self.pro_blob_max_bytes,
             self.pro_storage_quota_bytes,
             self.pro_max_entries,

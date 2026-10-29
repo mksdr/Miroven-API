@@ -174,7 +174,17 @@ class SyncState(Base):
     epoch: Mapped[uuid.UUID] = mapped_column(UUID, default=uuid.uuid4)
     head: Mapped[int] = mapped_column(BigInteger, default=0)
     floor: Mapped[int] = mapped_column(BigInteger, default=0)
-    __table_args__ = (CheckConstraint("floor >= 0 AND head >= floor", name="cursor_range"),)
+    document_bytes: Mapped[int] = mapped_column(BigInteger, default=0, server_default="0")
+    write_window_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    write_window_count: Mapped[int] = mapped_column(BigInteger, default=0, server_default="0")
+    write_window_bytes: Mapped[int] = mapped_column(BigInteger, default=0, server_default="0")
+    __table_args__ = (
+        CheckConstraint("floor >= 0 AND head >= floor", name="cursor_range"),
+        CheckConstraint(
+            "document_bytes >= 0 AND write_window_count >= 0 AND write_window_bytes >= 0",
+            name="budgets_nonnegative",
+        ),
+    )
 
 
 class BlobObject(Base):
