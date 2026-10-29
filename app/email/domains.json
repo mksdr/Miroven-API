@@ -1,0 +1,13 @@
+{
+  "DEFAULT": [
+    "aol.com", "gmail.com", "icloud.com", "live.com", "outlook.com",
+    "privaterelay.appleid.com", "pm.me", "proton.me", "protonmail.com",
+    "protonmail.ch", "tuta.com", "yahoo.com"
+  ],
+  "KR": [
+    "naver.com", "kakao.com", "yahoo.co.kr", "outlook.kr", "nate.com",
+    "daum.net", "hanmail.net", "narasarang.or.kr", "korea.kr", "live.co.kr",
+    "hotmail.co.kr"
+  ],
+  "JP": ["yahoo.co.jp", "i.softbank.jp", "docomo.ne.jp", "ezweb.ne.jp"]
+}

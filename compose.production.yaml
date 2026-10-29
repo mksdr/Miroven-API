@@ -63,7 +63,7 @@ services:
       api: {condition: service_healthy}
     restart: unless-stopped
   proxy:
-    image: caddy:2.10.2-alpine
+    image: caddy:2.11.7-alpine
     environment:
       MIROVEN_DOMAIN: ${MIROVEN_DOMAIN:?Set the public hostname}
     ports: ["80:80", "443:443"]

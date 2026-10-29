@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.email.policy import email_locale, signup_allowed
 from app.errors import ApiError
 from app.models import AuthSession, Job, LoginChallenge, RateWindow, User
 from app.security import digest, encrypt_job, new_token
@@ -53,6 +54,11 @@ def request_code(db: Session, settings: Settings, email: str, ip: str):
         return
     if db.scalar(select(User.deleting_at).where(User.email == email)) is not None:
         return
+    if (
+        not signup_allowed(settings.email_domain_groups, email)
+        and db.scalar(select(User.id).where(User.email == email)) is None
+    ):
+        return
     db.execute(
         update(LoginChallenge)
         .where(LoginChallenge.email == email, LoginChallenge.consumed_at.is_(None))
@@ -77,6 +83,8 @@ def request_code(db: Session, settings: Settings, email: str, ip: str):
                     "email": email,
                     "code": code,
                     "challenge_id": str(challenge.id),
+                    "locale": email_locale(settings.email_domain_groups, email),
+                    "expires_at": challenge.expires_at.isoformat(),
                 },
             ),
             available_at=now,
@@ -111,6 +119,8 @@ def verify_code(db: Session, settings: Settings, email: str, code: str, ip: str)
     challenge.consumed_at = now
     user = db.scalar(select(User).where(User.email == email).with_for_update())
     if user is None:
+        if not signup_allowed(settings.email_domain_groups, email):
+            return None
         user = User(email=email)
         db.add(user)
         db.flush()

@@ -33,7 +33,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="Miroven API",
-        version="0.1.0",
+        version="0.1.0",  # x-release-please-version
         lifespan=lifespan,
         description="Encrypted storage API. Only implemented endpoints are advertised.",
         license_info={"name": "AGPL-3.0-only", "url": "https://www.gnu.org/licenses/agpl-3.0.html"},

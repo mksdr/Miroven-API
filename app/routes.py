@@ -12,6 +12,7 @@ from app.db import get_db
 from app.errors import ApiError
 from app.models import AuthSession, Vault
 from app.schemas import (
+    AuthPolicyResponse,
     CodeAccepted,
     CodeRequest,
     CodeVerify,
@@ -60,6 +61,11 @@ def ready(db: Database):
     except SQLAlchemyError as exc:
         raise ApiError(503, "not_ready", "The service is not ready.") from exc
     return HealthResponse()
+
+
+@router.get("/api/v1/auth/policy", response_model=AuthPolicyResponse, tags=["auth"])
+def auth_policy(request: Request):
+    return AuthPolicyResponse(domain_groups=request.app.state.settings.email_domain_groups)
 
 
 @router.post(

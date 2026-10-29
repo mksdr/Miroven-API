@@ -1,4 +1,5 @@
 import json
+import os
 import time
 
 import pytest
@@ -174,7 +175,8 @@ def test_compose_for_rewrites_custom_root_paths(tmp_path, release, monkeypatch):
             assert "/mnt/tank/miroven" not in volume["source"]
 
 
-def test_preflight_accepts_whitespace_comments_and_custom_https_ports(tmp_path, monkeypatch):
+@pytest.fixture
+def preflight_env(tmp_path, monkeypatch):
     import stat
     from types import SimpleNamespace
 
@@ -218,6 +220,11 @@ def test_preflight_accepts_whitespace_comments_and_custom_https_ports(tmp_path, 
         )
 
     monkeypatch.setattr(type(tmp_path), "stat", fake_stat)
+    return api_env
+
+
+def test_preflight_accepts_whitespace_comments_and_custom_https_ports(preflight_env):
+    api_env = preflight_env
     assert manage.preflight() == "https://api.valid.test:8443"
 
     api_env.write_text(
@@ -226,6 +233,41 @@ def test_preflight_accepts_whitespace_comments_and_custom_https_ports(tmp_path, 
     )
     with pytest.raises(ValueError, match="HTTPS origins"):
         manage.preflight()
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "is_example"),
+    [
+        ("MIROVEN_PUBLIC_ORIGIN", "https://example.com", True),
+        ("MIROVEN_API_ORIGIN", "https://api.EXAMPLE.COM:8443", True),
+        ("MIROVEN_API_ORIGIN", "https://api.example.com.", True),
+        ("MIROVEN_SMTP_HOST", "SMTP.EXAMPLE.COM.", True),
+        ("MIROVEN_SMTP_FROM", "Miroven <noreply@EXAMPLE.COM>", True),
+        ("MIROVEN_SMTP_USERNAME", "mailer@SMTP.EXAMPLE.COM", True),
+        ("MIROVEN_ADMIN_EMAILS", "admin@valid.test,admin@EXAMPLE.COM", True),
+        ("MIROVEN_SMTP_PASSWORD", "REPLACE", True),
+        ("MIROVEN_API_ORIGIN", "https://myexample.com", False),
+        ("MIROVEN_API_ORIGIN", "https://example.com.valid.test", False),
+        ("MIROVEN_SMTP_HOST", "smtp.myexample.com", False),
+        ("MIROVEN_SMTP_FROM", "example.com team <mailer@valid.test>", False),
+        ("MIROVEN_SMTP_USERNAME", "example.com@valid.test", False),
+        ("MIROVEN_SMTP_PASSWORD", "synthetic-example.com-password", False),
+    ],
+)
+def test_preflight_checks_example_hosts_instead_of_arbitrary_substrings(
+    preflight_env, key, value, is_example
+):
+    lines = [
+        line
+        for line in preflight_env.read_text(encoding="utf-8").splitlines()
+        if not line.startswith(key + "=")
+    ]
+    preflight_env.write_text("\n".join([*lines, f"{key}={value}"]) + "\n", encoding="utf-8")
+    if is_example:
+        with pytest.raises(ValueError, match="Replace example environment values"):
+            manage.preflight()
+    else:
+        assert manage.preflight().startswith("https://")
 
 
 def test_main_surfaces_value_error_but_hides_runtime_error_details(tmp_path, monkeypatch, capsys):
@@ -272,6 +314,77 @@ def test_missing_github_release_raises_clear_value_error(monkeypatch):
         manage.latest_release()
 
 
+@pytest.mark.parametrize(("uid", "gid", "mode"), [(0, 0, 0o600), (65532, 65532, 0o400)])
+def test_write_secret_restricts_creation_and_sets_metadata_before_content(
+    tmp_path, monkeypatch, uid, gid, mode
+):
+    path = tmp_path / "secret"
+    events = []
+    real_open = os.open
+
+    def open_secret(name, flags, creation_mode):
+        assert name == path
+        assert flags & os.O_EXCL
+        assert flags & os.O_CREAT
+        assert creation_mode == mode
+        events.append("create")
+        return real_open(name, flags, creation_mode)
+
+    def chown(fd, owner, group):
+        assert path.read_bytes() == b""
+        assert (owner, group) == (uid, gid)
+        events.append("owner")
+
+    def chmod(fd, permissions):
+        assert path.read_bytes() == b""
+        assert permissions == mode
+        events.append("mode")
+
+    monkeypatch.setattr(manage.os, "open", open_secret)
+    monkeypatch.setattr(manage.os, "fchown", chown, raising=False)
+    monkeypatch.setattr(manage.os, "fchmod", chmod, raising=False)
+    manage.write_secret(path, "synthetic-secret\n", uid=uid, gid=gid, mode=mode)
+    assert events == ["create", "owner", "mode"]
+    assert path.read_text(encoding="utf-8") == "synthetic-secret\n"
+    with pytest.raises(FileExistsError):
+        manage.write_secret(path, "replacement", uid=uid, gid=gid, mode=mode)
+    assert path.read_text(encoding="utf-8") == "synthetic-secret\n"
+
+
+@pytest.mark.parametrize("operation", ["fchown", "fchmod"])
+def test_write_secret_metadata_failure_writes_no_content(tmp_path, monkeypatch, operation):
+    path = tmp_path / "secret"
+    monkeypatch.setattr(manage.os, "fchown", lambda *args: None, raising=False)
+    monkeypatch.setattr(manage.os, "fchmod", lambda *args: None, raising=False)
+
+    def fail(*args):
+        raise PermissionError("Synthetic metadata failure")
+
+    monkeypatch.setattr(manage.os, operation, fail)
+    with pytest.raises(PermissionError):
+        manage.write_secret(path, "synthetic-secret")
+    assert path.read_bytes() == b""
+
+
+@pytest.mark.skipif(os.name != "posix", reason="Requires POSIX modes and symlinks")
+def test_write_secret_posix_permissions_and_symlink_refusal(tmp_path, monkeypatch):
+    import stat
+
+    monkeypatch.setattr(manage.os, "fchown", lambda *args: None)
+    previous_umask = os.umask(0)
+    try:
+        path = tmp_path / "secret"
+        manage.write_secret(path, "synthetic-secret", mode=0o400)
+        assert stat.S_IMODE(path.stat().st_mode) == 0o400
+        link = tmp_path / "link"
+        link.symlink_to(path)
+        with pytest.raises(FileExistsError):
+            manage.write_secret(link, "replacement")
+        assert path.read_text(encoding="utf-8") == "synthetic-secret"
+    finally:
+        os.umask(previous_umask)
+
+
 def test_init_creates_layout_generates_matching_secrets_and_preserves_existing(
     tmp_path, monkeypatch, capsys
 ):
@@ -284,6 +397,16 @@ def test_init_creates_layout_generates_matching_secrets_and_preserves_existing(
         manage.os, "chown", lambda p, u, g: chowns.__setitem__(p, (u, g)), raising=False
     )
     monkeypatch.setattr(manage.os, "chmod", lambda p, m: chmods.__setitem__(p, m))
+    monkeypatch.setattr(manage.os, "fchown", lambda *args: None, raising=False)
+    monkeypatch.setattr(manage.os, "fchmod", lambda *args: None, raising=False)
+    real_write_secret = manage.write_secret
+
+    def write_secret(path, text, *, uid=0, gid=0, mode=0o600):
+        chowns[path] = (uid, gid)
+        chmods[path] = mode
+        real_write_secret(path, text, uid=uid, gid=gid, mode=mode)
+
+    monkeypatch.setattr(manage, "write_secret", write_secret)
     monkeypatch.setattr(manage.sys.stdin, "isatty", lambda: False)
 
     manage.init()
@@ -316,6 +439,13 @@ def test_init_creates_layout_generates_matching_secrets_and_preserves_existing(
     ) == "my-tunnel-token\n"
     assert chowns[tmp_path / "secrets" / "tunnel-token"] == (65532, 65532)
     assert chmods[tmp_path / "secrets" / "tunnel-token"] == 0o400
+    assert "my-tunnel-token" not in capsys.readouterr().out
+
+    monkeypatch.setattr(manage.getpass, "getpass", lambda prompt: pytest.fail("Must not prompt"))
+    manage.init()
+    assert (tmp_path / "secrets" / "tunnel-token").read_text(
+        encoding="utf-8"
+    ) == "my-tunnel-token\n"
 
     (tmp_path / "secrets" / "api.env").unlink()
     with pytest.raises(ValueError, match="Incomplete secret environment files"):

@@ -1,0 +1,105 @@
+{
+  "always-update": true,
+  "bootstrap-sha": "57c66fde38d3d4b29a2926894a6d1adf38d8d5be",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "version-file": "version.txt",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "bump-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": false,
+      "changelog-sections": [
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Bug Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "Performance Improvements"
+        },
+        {
+          "type": "revert",
+          "section": "Reverts"
+        },
+        {
+          "type": "docs",
+          "section": "docs",
+          "hidden": true
+        },
+        {
+          "type": "style",
+          "section": "style",
+          "hidden": true
+        },
+        {
+          "type": "chore",
+          "section": "chore",
+          "hidden": true
+        },
+        {
+          "type": "refactor",
+          "section": "refactor",
+          "hidden": true
+        },
+        {
+          "type": "test",
+          "section": "test",
+          "hidden": true
+        },
+        {
+          "type": "build",
+          "section": "build",
+          "hidden": true
+        },
+        {
+          "type": "ci",
+          "section": "ci",
+          "hidden": true
+        }
+      ],
+      "draft": true,
+      "force-tag-creation": true,
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "package-lock.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "package-lock.json",
+          "jsonpath": "$.packages[''].version"
+        },
+        {
+          "type": "toml",
+          "path": "pyproject.toml",
+          "jsonpath": "$.project.version"
+        },
+        {
+          "type": "toml",
+          "path": "uv.lock",
+          "jsonpath": "$.package[?(@.name.value=='miroven-api')].version"
+        },
+        {
+          "type": "generic",
+          "path": "app/main.py"
+        },
+        {
+          "type": "json",
+          "path": "contracts/openapi.json",
+          "jsonpath": "$.info.version"
+        }
+      ]
+    }
+  }
+}

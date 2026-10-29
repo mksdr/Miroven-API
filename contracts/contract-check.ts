@@ -1,6 +1,7 @@
 import type { paths } from "./api";
 
 type Verify = paths["/api/v1/auth/code/verify"]["post"];
+type AuthPolicy = paths["/api/v1/auth/policy"]["get"]["responses"][200]["content"]["application/json"];
 type VerifyBody = Verify["requestBody"]["content"]["application/json"];
 type Session = Verify["responses"][200]["content"]["application/json"];
 type PutVault = paths["/api/v1/vault"]["put"]["requestBody"]["content"]["application/json"];
@@ -13,6 +14,12 @@ type AdminStats = paths["/api/v1/admin/stats"]["get"]["responses"][200]["content
 type UpdateSubscription = paths["/api/v1/admin/users/{user_id}/subscription"]["put"]["requestBody"]["content"]["application/json"];
 
 export const signIn: VerifyBody = { email: "person@example.com", code: "123456" };
+export const authPolicy: AuthPolicy = {
+  domain_groups: { DEFAULT: ["gmail.com"], KR: ["naver.com"], JP: ["yahoo.co.jp"] },
+  default_email_locale: "en",
+  existing_accounts_allowed: true,
+  blocked_local_part_characters: ["+", "."],
+};
 export function sessionUser(session: Session): string {
   return session.user_id;
 }
