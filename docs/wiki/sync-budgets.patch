@@ -1,0 +1,133 @@
+diff --git a/API-Operations.ko.md b/API-Operations.ko.md
+index e1170d3..79c9f89 100644
+--- a/API-Operations.ko.md
++++ b/API-Operations.ko.md
+@@ -109,3 +109,26 @@ docker compose --env-file .env.production -f compose.production.yaml -p miroven-
+ ## 암호화 프로필 문서
+
+ 계정별 예약 ID `00000000-0000-4000-8000-000000000001`의 프로필은 DB의 암호화 문서·변경 이력·snapshot에 포함된다. 프로필 이미지는 payload 내부에 있으므로 별도 파일 객체가 없다. 기존 DB 백업·복원과 계정 삭제 경로에 함께 포함하며 별도 테이블·데이터 이전 작업을 추가하지 않는다. 프로필은 기록 한도·개수와 파일 사용량에서 제외한다. [계약](API-Sync-Protocol.ko#프로필-문서)을 따른다.
++
++## 계정별 동기화 DB 예산
++
++현재 서버는 Alembic head에 포함된 `0006_sync_budgets`가 필요하다. 기존 현재 문서와 변경 이력의 UTF-8 JSON 바이트 사용량을 역산하며 콘텐츠·재시도 영수증은 지우지 않는다. API/worker 쓰기를 중지하고 DB·blob 쌍 백업 후 업그레이드한다. 기존 문서를 스캔하고 `sync_states`를 잠그므로 큰 DB에는 점검 시간을 확보한다. downgrade는 새 집계 열만 제거해 기록은 보존하지만 구버전 서버에는 보호 한도가 없다. 다시 upgrade하면 사용량을 재계산하고 새 시간 구간을 시작한다.
++
++다음 양수 설정은 blob 한도·구독별 재정의와 독립적으로 모든 플랜의 각 계정에 적용된다.
++
++| 설정 | 기본값 | 의미 |
++| --- | --- | --- |
++| `MIROVEN_SYNC_STORAGE_QUOTA_BYTES` | 134217728 (128 MiB) | 현재 기록·프로필·tombstone 및 보존 변경 이력의 논리 JSON 바이트 |
++| `MIROVEN_SYNC_OPERATION_LIMIT` | 1000000 | 단조 증가 sync head로 집계한 계정 수명 전체의 승인 operation/영수증 수 |
++| `MIROVEN_SYNC_HOURLY_OPERATIONS` | 20000 | UTC 시계 시간당 성공한 새 operation 수 |
++| `MIROVEN_SYNC_HOURLY_BYTES` | 67108864 (64 MiB) | UTC 시계 시간당 성공한 새 문서의 논리 JSON 유입 바이트 |
++
++문서 바이트는 검증된 sync 스키마에서 PostgreSQL `JSONB::text`와 같은 구분자를 쓰는 UTF-8 JSON 크기다. base64 암호문·봉투·ID·revision·메타데이터·첨부 ID를 포함한다. 쓰기는 현재 문서를 교체하고 이력 전체 사본을 추가하므로 `2 * 새 문서 바이트 - 이전 현재 문서 바이트`를 반영한다. 압축된 DB·인덱스·WAL·실제 디스크 크기는 아니며 `/account/usage.storage_bytes`는 계속 blob만 집계한다. 요청·응답·암호화·AAD·revision·cursor 형식은 유지한다.
++
++사용자 행 잠금 아래 예약·문서·이력·영수증 및 유지보수를 직렬화한다. commit·검증·파일 참조 실패는 예약도 rollback한다. 동일 operation-ID의 정확한 재시도는 모든 한도 검사 전에 원래 영수증을 반환하며 예산을 다시 사용하지 않는다. 다른 payload의 재시도는 계속 `operation_mismatch`다. 영수증은 계정 수명 동안 유지하며 임의로 제거하지 않는다. 수명 한도에 도달하면 삭제 operation을 포함한 새 쓰기는 운영자가 사용량을 검토하고 설정을 높여야 한다. 이력 정리는 head를 초기화하지 않으며 계정 삭제는 계속 가능하다.
++
++바이트 한도를 초과하는 증가는 409 `sync_storage_limit`, 영수증 한도는 409 `sync_operation_limit`, 시간당 수·바이트 한도는 429 `sync_rate_limited`다. 기존 클라이언트는 이를 revision 충돌이나 승인으로 처리하지 않고 pending operation을 보존한다. 쓰기 한도에 도달해도 읽기와 snapshot 복구는 가능하다. 시간당 한도는 UTC 정시에 초기화되며 단일 문서가 시간당 바이트 예산 전체보다 크면 설정 변경이 필요하다. 큰 오프라인 큐는 여러 시간에 걸쳐 전송할 수 있다.
++
++보존 기간이 지난 이력만 같은 잠금 아래 제거하고 해당 바이트를 반환한다. 영수증·커서·파일 참조는 보존한다. 설정을 낮추거나 기존 데이터가 새 한도보다 커도 콘텐츠를 지우지 않으며, 논리 바이트를 줄이는 쓰기는 영수증·시간당 한도 내에서 허용한다. 현재 문서가 차지하는 공간은 이력 만료만으로 반환되지 않는다. 실사용량을 검토해 용량을 조정하고 원본·백업을 유지한다.
++
++복구를 위해 snapshot 사본은 기본 쓰기 예산에서 제외한다. 각 고정 사본은 생성 시점의 현재 문서 바이트만 복사하며 계정당 최대 `max_snapshots`개다(기본 5개, TTL 1시간). 한도를 낮추거나 현재 문서를 줄여도 기존 snapshot은 만료 전에 작아지지 않으며, 기존 초과 데이터는 더 큰 snapshot을 만들 수 있다. 이력 및 만료 snapshot 정리를 계속 실행해야 한다. 영수증 메타데이터는 수명 operation 한도와 검증된 고정 크기 결과 필드로 제한한다. 실제 전체 디스크 사용량과 여러 계정의 합계는 별도로 용량 관리·모니터링한다.
+diff --git a/API-Operations.md b/API-Operations.md
+index b920341..1cbf99e 100644
+--- a/API-Operations.md
++++ b/API-Operations.md
+@@ -108,3 +108,26 @@ Ledger application blocks restored accounts, revokes sessions, and recreates del
+ ## Encrypted profile
+
+ The per-account reserved UUID `00000000-0000-4000-8000-000000000001` is included in current encrypted documents, change history, snapshots, DB backup/restore, and account deletion. Its image is inside the payload, with no separate blob. No separate table/data migration is needed. It is excluded from journal entry limits/counts and blob usage. See [profile contract](API-Sync-Protocol#profile-document).
++
++## Account-wide sync database budgets
++
++Migration `0006_sync_budgets` is part of the current required Alembic head. It backfills the UTF-8 JSON byte count of existing current documents and change history without deleting content or idempotency receipts. Stop API/worker writers and take a paired backup before upgrade. The backfill scans existing documents and locks `sync_states`; allow a maintenance window on large databases. Downgrade removes only the new accounting columns, retaining journal data, but the old server no longer enforces these protections. Re-upgrade recalculates usage and starts a new hourly window.
++
++These positive account-wide operational settings apply to every plan, independently of blob quotas and subscription overrides:
++
++| Setting | Default | Meaning |
++| --- | --- | --- |
++| `MIROVEN_SYNC_STORAGE_QUOTA_BYTES` | 134217728 (128 MiB) | Logical JSON bytes in current entry/profile/tombstone documents plus retained change history |
++| `MIROVEN_SYNC_OPERATION_LIMIT` | 1000000 | Lifetime accepted operations/receipts, using the monotonically increasing sync head |
++| `MIROVEN_SYNC_HOURLY_OPERATIONS` | 20000 | Successful new operations per UTC clock hour |
++| `MIROVEN_SYNC_HOURLY_BYTES` | 67108864 (64 MiB) | Successful new documents' logical JSON ingress bytes per UTC clock hour |
++
++Document bytes use UTF-8 JSON with the same separators as PostgreSQL `JSONB::text` for the validated sync schema; they include base64 ciphertext, envelope fields, IDs, revisions, metadata, and attachment IDs. A write replaces the current document and adds a full history copy, so charge `2 * new_document_bytes - previous_current_document_bytes`. This is not compressed database/index/WAL/disk usage. `/account/usage.storage_bytes` remains blob-only. No request, response, encryption, AAD, revision, or cursor encoding changes are introduced.
++
++The authenticated user lock serializes reservations, new documents/history/receipts, and maintenance. Commit/validation/storage-reference failures roll back the reservation. Exact operation-ID retries return their original receipt before checking any budgets and do not consume another slot; mismatched retries still return `operation_mismatch`. Receipt records remain for the account lifetime: they are not silently evicted. On reaching the lifetime cap, new writes (including deletion operations) require an operator to review/raise configuration; history cleanup does not reset the sync head. Account deletion remains available.
++
++New growth exceeding the byte budget returns 409 `sync_storage_limit`; the receipt cap returns 409 `sync_operation_limit`; the hourly count or byte cap returns 429 `sync_rate_limited`. The existing client retains the pending operation for these errors, rather than treating them as revision conflicts or acknowledging them. Read access and snapshot recovery continue at a write limit. Hourly limits reset at UTC hour boundaries; a write larger than the entire hourly byte budget needs a configuration change. Defaults allow large offline queues to drain over multiple hours.
++
++Retention cleanup releases only pruned history bytes under the same lock and preserves receipts/cursors/blob references. Lowered limits or migrated over-limit data are not deleted; net byte-reducing writes may proceed while over the document quota, subject to the receipt/hourly caps. Current-document bytes cannot be reclaimed by aging history. Adjust capacity after reviewing real usage and keep originals/backups.
++
++Snapshot copies are excluded from the primary write budget so recovery remains usable. Each frozen copy retains at most the current-document bytes present when it is created, with at most `max_snapshots` copies per account (default five, TTL one hour). Lowering the budget or shrinking documents does not shrink existing snapshots before expiry, and grandfathered over-limit data can produce larger snapshots. Retention and expired-snapshot cleanup must keep running. Receipt metadata is bounded by the lifetime operation cap and fixed-size validated result fields. Actual total disk use and aggregate usage across accounts still need operational monitoring/capacity management.
+diff --git a/API-Sync-Protocol.ko.md b/API-Sync-Protocol.ko.md
+index 7b39078..2299f9f 100644
+--- a/API-Sync-Protocol.ko.md
++++ b/API-Sync-Protocol.ko.md
+@@ -132,3 +132,26 @@ Free 기본 한도는 프로필을 제외하고 tombstone을 포함해 계정당
+ 필요한 객체 권한은 해당 서버 prefix의 GetObject·PutObject·DeleteObject이며 bucket은 private이어야 한다. `If-None-Match` 및 사용 중인 SDK의 요청 형식을 지원하는지 실제 제공업체에서도 확인한다. backend·bucket·prefix를 바꾸어도 기존 파일이 자동 이전되지는 않는다.
+
+ 공통 저장소·API 테스트는 로컬과 Moto S3 에뮬레이터에서 수행한다. 실제 AWS·타 S3 제공업체의 권한·TLS·운영 동작을 검증한 결과로 간주하지 않는다. Docker smoke는 기본 로컬 볼륨과 두 HTTP 클라이언트 사이에서 기존 AAD 형식의 암호화 기록·사진 왕복을 확인한다. 브라우저·실기기 검증 한계는 [검증 범위](API-Validation.ko)를 따른다.
++
++## 계정별 동기화 DB 예산
++
++현재 서버는 Alembic head에 포함된 `0006_sync_budgets`가 필요하다. 기존 현재 문서와 변경 이력의 UTF-8 JSON 바이트 사용량을 역산하며 콘텐츠·재시도 영수증은 지우지 않는다. API/worker 쓰기를 중지하고 DB·blob 쌍 백업 후 업그레이드한다. 기존 문서를 스캔하고 `sync_states`를 잠그므로 큰 DB에는 점검 시간을 확보한다. downgrade는 새 집계 열만 제거해 기록은 보존하지만 구버전 서버에는 보호 한도가 없다. 다시 upgrade하면 사용량을 재계산하고 새 시간 구간을 시작한다.
++
++다음 양수 설정은 blob 한도·구독별 재정의와 독립적으로 모든 플랜의 각 계정에 적용된다.
++
++| 설정 | 기본값 | 의미 |
++| --- | --- | --- |
++| `MIROVEN_SYNC_STORAGE_QUOTA_BYTES` | 134217728 (128 MiB) | 현재 기록·프로필·tombstone 및 보존 변경 이력의 논리 JSON 바이트 |
++| `MIROVEN_SYNC_OPERATION_LIMIT` | 1000000 | 단조 증가 sync head로 집계한 계정 수명 전체의 승인 operation/영수증 수 |
++| `MIROVEN_SYNC_HOURLY_OPERATIONS` | 20000 | UTC 시계 시간당 성공한 새 operation 수 |
++| `MIROVEN_SYNC_HOURLY_BYTES` | 67108864 (64 MiB) | UTC 시계 시간당 성공한 새 문서의 논리 JSON 유입 바이트 |
++
++문서 바이트는 검증된 sync 스키마에서 PostgreSQL `JSONB::text`와 같은 구분자를 쓰는 UTF-8 JSON 크기다. base64 암호문·봉투·ID·revision·메타데이터·첨부 ID를 포함한다. 쓰기는 현재 문서를 교체하고 이력 전체 사본을 추가하므로 `2 * 새 문서 바이트 - 이전 현재 문서 바이트`를 반영한다. 압축된 DB·인덱스·WAL·실제 디스크 크기는 아니며 `/account/usage.storage_bytes`는 계속 blob만 집계한다. 요청·응답·암호화·AAD·revision·cursor 형식은 유지한다.
++
++사용자 행 잠금 아래 예약·문서·이력·영수증 및 유지보수를 직렬화한다. commit·검증·파일 참조 실패는 예약도 rollback한다. 동일 operation-ID의 정확한 재시도는 모든 한도 검사 전에 원래 영수증을 반환하며 예산을 다시 사용하지 않는다. 다른 payload의 재시도는 계속 `operation_mismatch`다. 영수증은 계정 수명 동안 유지하며 임의로 제거하지 않는다. 수명 한도에 도달하면 삭제 operation을 포함한 새 쓰기는 운영자가 사용량을 검토하고 설정을 높여야 한다. 이력 정리는 head를 초기화하지 않으며 계정 삭제는 계속 가능하다.
++
++바이트 한도를 초과하는 증가는 409 `sync_storage_limit`, 영수증 한도는 409 `sync_operation_limit`, 시간당 수·바이트 한도는 429 `sync_rate_limited`다. 기존 클라이언트는 이를 revision 충돌이나 승인으로 처리하지 않고 pending operation을 보존한다. 쓰기 한도에 도달해도 읽기와 snapshot 복구는 가능하다. 시간당 한도는 UTC 정시에 초기화되며 단일 문서가 시간당 바이트 예산 전체보다 크면 설정 변경이 필요하다. 큰 오프라인 큐는 여러 시간에 걸쳐 전송할 수 있다.
++
++보존 기간이 지난 이력만 같은 잠금 아래 제거하고 해당 바이트를 반환한다. 영수증·커서·파일 참조는 보존한다. 설정을 낮추거나 기존 데이터가 새 한도보다 커도 콘텐츠를 지우지 않으며, 논리 바이트를 줄이는 쓰기는 영수증·시간당 한도 내에서 허용한다. 현재 문서가 차지하는 공간은 이력 만료만으로 반환되지 않는다. 실사용량을 검토해 용량을 조정하고 원본·백업을 유지한다.
++
++복구를 위해 snapshot 사본은 기본 쓰기 예산에서 제외한다. 각 고정 사본은 생성 시점의 현재 문서 바이트만 복사하며 계정당 최대 `max_snapshots`개다(기본 5개, TTL 1시간). 한도를 낮추거나 현재 문서를 줄여도 기존 snapshot은 만료 전에 작아지지 않으며, 기존 초과 데이터는 더 큰 snapshot을 만들 수 있다. 이력 및 만료 snapshot 정리를 계속 실행해야 한다. 영수증 메타데이터는 수명 operation 한도와 검증된 고정 크기 결과 필드로 제한한다. 실제 전체 디스크 사용량과 여러 계정의 합계는 별도로 용량 관리·모니터링한다.
+diff --git a/API-Sync-Protocol.md b/API-Sync-Protocol.md
+index cb051d0..1e2dc05 100644
+--- a/API-Sync-Protocol.md
++++ b/API-Sync-Protocol.md
+@@ -4,7 +4,7 @@
+
+ Miroven-API synchronization contract. Exact request/response schemas are defined by `contracts/openapi.json` in the API checkout. All routes below have prefix `/api/v1`. Ownership comes from session cookies; mutations require Origin and `X-CSRF-Token`, not a body user ID.
+
+-Deploy the current API with its full Alembic `head`, including `0005_subscriptions` for effective quota queries. `0004_attachments` describes the multi-photo minimum, not the full current schema.
++Deploy the current API with its full Alembic `head`, including `0005_subscriptions` for effective quota queries and `0006_sync_budgets` for sync database accounting. `0004_attachments` describes the multi-photo minimum, not the full current schema.
+
+ ## Envelopes
+
+@@ -105,3 +105,26 @@ The default Free journal quota is 10,000 per account including tombstones but ex
+ For S3 set `MIROVEN_STORAGE_BACKEND=s3`, `MIROVEN_S3_BUCKET`, `MIROVEN_S3_REGION`, and optionally `MIROVEN_S3_ENDPOINT_URL` for compatible providers. Supply access/secret together or use the SDK IAM credential chain. The API does not create buckets or configure public policies. Grant GetObject/PutObject/DeleteObject for the server prefix; keep the bucket private. Verify `If-None-Match` and SDK request compatibility with the real provider. Changing backend/bucket/prefix does not migrate existing files.
+
+ Shared storage/API tests use local storage and Moto, not actual AWS/other-provider permissions/TLS/operations. Docker smoke checks encrypted entry/photo round trips with existing AAD between two HTTP clients and local volumes. See [validation boundaries](API-Validation) for browser/physical-device scope.
++
++## Account-wide sync database budgets
++
++Migration `0006_sync_budgets` is part of the current required Alembic head. It backfills the UTF-8 JSON byte count of existing current documents and change history without deleting content or idempotency receipts. Stop API/worker writers and take a paired backup before upgrade. The backfill scans existing documents and locks `sync_states`; allow a maintenance window on large databases. Downgrade removes only the new accounting columns, retaining journal data, but the old server no longer enforces these protections. Re-upgrade recalculates usage and starts a new hourly window.
++
++These positive account-wide operational settings apply to every plan, independently of blob quotas and subscription overrides:
++
++| Setting | Default | Meaning |
++| --- | --- | --- |
++| `MIROVEN_SYNC_STORAGE_QUOTA_BYTES` | 134217728 (128 MiB) | Logical JSON bytes in current entry/profile/tombstone documents plus retained change history |
++| `MIROVEN_SYNC_OPERATION_LIMIT` | 1000000 | Lifetime accepted operations/receipts, using the monotonically increasing sync head |
++| `MIROVEN_SYNC_HOURLY_OPERATIONS` | 20000 | Successful new operations per UTC clock hour |
++| `MIROVEN_SYNC_HOURLY_BYTES` | 67108864 (64 MiB) | Successful new documents' logical JSON ingress bytes per UTC clock hour |
++
++Document bytes use UTF-8 JSON with the same separators as PostgreSQL `JSONB::text` for the validated sync schema; they include base64 ciphertext, envelope fields, IDs, revisions, metadata, and attachment IDs. A write replaces the current document and adds a full history copy, so charge `2 * new_document_bytes - previous_current_document_bytes`. This is not compressed database/index/WAL/disk usage. `/account/usage.storage_bytes` remains blob-only. No request, response, encryption, AAD, revision, or cursor encoding changes are introduced.
++
++The authenticated user lock serializes reservations, new documents/history/receipts, and maintenance. Commit/validation/storage-reference failures roll back the reservation. Exact operation-ID retries return their original receipt before checking any budgets and do not consume another slot; mismatched retries still return `operation_mismatch`. Receipt records remain for the account lifetime: they are not silently evicted. On reaching the lifetime cap, new writes (including deletion operations) require an operator to review/raise configuration; history cleanup does not reset the sync head. Account deletion remains available.
++
++New growth exceeding the byte budget returns 409 `sync_storage_limit`; the receipt cap returns 409 `sync_operation_limit`; the hourly count or byte cap returns 429 `sync_rate_limited`. The existing client retains the pending operation for these errors, rather than treating them as revision conflicts or acknowledging them. Read access and snapshot recovery continue at a write limit. Hourly limits reset at UTC hour boundaries; a write larger than the entire hourly byte budget needs a configuration change. Defaults allow large offline queues to drain over multiple hours.
++
++Retention cleanup releases only pruned history bytes under the same lock and preserves receipts/cursors/blob references. Lowered limits or migrated over-limit data are not deleted; net byte-reducing writes may proceed while over the document quota, subject to the receipt/hourly caps. Current-document bytes cannot be reclaimed by aging history. Adjust capacity after reviewing real usage and keep originals/backups.
++
++Snapshot copies are excluded from the primary write budget so recovery remains usable. Each frozen copy retains at most the current-document bytes present when it is created, with at most `max_snapshots` copies per account (default five, TTL one hour). Lowering the budget or shrinking documents does not shrink existing snapshots before expiry, and grandfathered over-limit data can produce larger snapshots. Retention and expired-snapshot cleanup must keep running. Receipt metadata is bounded by the lifetime operation cap and fixed-size validated result fields. Actual total disk use and aggregate usage across accounts still need operational monitoring/capacity management.

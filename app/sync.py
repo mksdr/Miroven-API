@@ -24,6 +24,7 @@ from app.models import (
 )
 from app.profile import PROFILE_DOCUMENT_ID
 from app.subscriptions import effective_limits
+from app.sync_budgets import reserve_write
 from app.sync_schemas import ChangePage, PushAccepted, SnapshotPage, SyncChange, SyncWrite
 
 
@@ -73,6 +74,7 @@ def push(db: Session, settings: Settings, user_id: uuid.UUID, body: SyncWrite) -
         >= limits.entry_limit
     ):
         raise ApiError(409, "entry_limit", "The entry limit has been reached.")
+    reserve_write(state, settings, document, entry.document if entry else None)
     for blob_id in body.blob_ids or ([body.blob_id] if body.blob_id else []):
         blob = db.get(BlobObject, (user_id, blob_id))
         if (
