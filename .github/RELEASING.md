@@ -54,7 +54,7 @@ The client application, API integration, image builds, production SMTP/TLS/stora
 
 Initial version: **0.1.0**. Bootstrap starts after the existing v0.1.0 commit `57c66fde38d3d4b29a2926894a6d1adf38d8d5be`. The pre-automation unreleased changes include TrueNAS provisioning hardening and email signup policy; review them in the first release notes.
 
-Release Please updates `pyproject.toml`, only the local project's version in `uv.lock`, npm package/lock root versions, the annotated FastAPI version and OpenAPI `info.version`. OpenAPI metadata must equal fresh exporter output; no routes/schemas or client TypeScript contracts are changed by a product version bump. Keep `x-release-please-version` on the FastAPI version line. CI retains `uv sync --locked` and OpenAPI regeneration checks.
+Release Please updates `pyproject.toml`, only the local project's version in `uv.lock`, npm package/lock root versions, the annotated FastAPI version and OpenAPI `info.version`. OpenAPI metadata must equal fresh exporter output; no routes/schemas or client TypeScript contracts are changed by a product version bump. The exporter writes integral numeric bounds without a `.0` suffix so Release Please’s JSON updater preserves the exact generated representation. Keep the strict exporter freshness check; do not fix release PRs by weakening it. Keep `x-release-please-version` on the FastAPI version line. CI retains `uv sync --locked` and OpenAPI regeneration checks.
 
 The pinned Release Please TOML updater wraps parsed values internally; its uv.lock selector deliberately uses `@.name.value`. Revalidate that selector with the actual updater when upgrading Release Please: exactly the local project version may change, and dependency versions must remain untouched.
 
@@ -115,7 +115,7 @@ python .github/scripts/release_policy.py --tag vX.Y.Z
 
 초기 버전은 **0.1.0**, 비교 기준은 기존 v0.1.0 커밋 `57c66fde38d3d4b29a2926894a6d1adf38d8d5be`입니다. 도입 전 미릴리스 변경인 TrueNAS 인증정보 설정 보강과 가입 이메일 정책을 첫 릴리스 노트에서 확인합니다.
 
-`pyproject.toml`, `uv.lock`의 프로젝트 자체 버전, npm 패키지·lock 루트 버전, 주석으로 표시한 FastAPI 버전과 OpenAPI `info.version`을 함께 갱신합니다. OpenAPI 메타데이터는 exporter 재생성과 일치해야 합니다. 제품 버전만 바뀌면 경로·스키마와 클라이언트 TypeScript 계약은 바뀌지 않습니다. FastAPI 버전 줄의 `x-release-please-version` 주석을 유지합니다. 기존 `uv sync --locked`와 OpenAPI 최신성 검사는 유지합니다.
+`pyproject.toml`, `uv.lock`의 프로젝트 자체 버전, npm 패키지·lock 루트 버전, 주석으로 표시한 FastAPI 버전과 OpenAPI `info.version`을 함께 갱신합니다. OpenAPI 메타데이터는 exporter 재생성과 일치해야 합니다. 제품 버전만 바뀌면 경로·스키마와 클라이언트 TypeScript 계약은 바뀌지 않습니다. Exporter는 정수 값인 숫자 경계를 `.0` 없이 출력해 Release Please의 JSON updater와 생성 결과를 일치시킵니다. 엄격한 exporter 최신성 검사는 유지하고 릴리스 PR을 통과시키려고 완화하지 않습니다. FastAPI 버전 줄의 `x-release-please-version` 주석을 유지합니다. 기존 `uv sync --locked`와 OpenAPI 최신성 검사는 유지합니다.
 
 고정한 Release Please의 TOML updater는 내부에서 파싱 값을 감싸므로 uv.lock 선택자는 의도적으로 `@.name.value`를 사용합니다. Release Please 업그레이드 시 실제 updater로 프로젝트 자체 버전만 바뀌고 의존성 버전이 보존되는지 다시 검증합니다.
 
