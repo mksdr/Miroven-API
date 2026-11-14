@@ -101,7 +101,7 @@ jobs:
       - name: Build and publish tested image
         if: steps.existing.outputs.published != 'true'
         id: image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
