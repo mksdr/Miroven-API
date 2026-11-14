@@ -219,7 +219,7 @@
       "stop_grace_period": "60s"
     },
     "proxy": {
-      "image": "caddy:2.10.2-alpine",
+      "image": "caddy:2.11.9-alpine",
       "volumes": [
         {
           "type": "bind",
