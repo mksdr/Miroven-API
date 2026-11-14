@@ -4,6 +4,9 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "author": "Miroven Project",
+  "engines": {
+    "node": ">=26 <27"
+  },
   "scripts": {
     "generate": "openapi-typescript contracts/openapi.json -o contracts/api.d.ts",
     "typecheck": "tsc --noEmit --strict --lib ES2022,DOM contracts/contract-check.ts"
