@@ -382,7 +382,12 @@ def test_push_commit_failure_rolls_back_cursor_entry_and_file_link(api, pg, read
     with Session(pg) as db:
         assert db.scalar(select(func.count()).select_from(JournalChange)) == 0
         assert db.scalar(select(BlobObject)).status == "ready"
+        assert db.get(SyncState, uuid.UUID(ready["user_id"])) is None
     assert api.post("/api/v1/sync/push", json=body).status_code == 200
+    with Session(pg) as db:
+        state = db.get(SyncState, uuid.UUID(ready["user_id"]))
+        assert state.write_window_count == 1
+        assert state.document_bytes > 0
     assert len(api.get("/api/v1/sync/changes").json()["items"]) == 1
 
 
@@ -437,6 +442,8 @@ def test_pending_orphan_is_removed_but_recent_upload_survives(api, pg, ready, ob
 
 def test_snapshot_limit_and_large_cursors(api, pg, ready):
     api.app.state.settings.max_snapshots = 1
+    # Exercise opaque cursor precision independently of the ordinary lifetime cap.
+    api.app.state.settings.sync_operation_limit = 2**63 - 1
     assert api.get("/api/v1/sync/snapshot").status_code == 200
     assert api.get("/api/v1/sync/snapshot").status_code == 429
     with Session(pg) as db, db.begin():

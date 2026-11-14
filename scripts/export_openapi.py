@@ -10,17 +10,37 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.config import Settings  # noqa: E402
 from app.main import create_app  # noqa: E402
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--check", action="store_true")
-args = parser.parse_args()
-app = create_app(Settings(_env_file=None, environment="test"))
-target = Path(__file__).resolve().parents[1] / "contracts" / "openapi.json"
-content = json.dumps(app.openapi(), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-app.state.engine.dispose()
-if args.check:
-    if not target.exists() or target.read_text(encoding="utf-8") != content:
-        raise SystemExit("OpenAPI contract is stale; run python scripts/export_openapi.py")
-else:
-    target.parent.mkdir(exist_ok=True)
-    target.write_text(content, encoding="utf-8", newline="\n")
-    print("Exported contracts/openapi.json")
+
+def normalize_numbers(value):
+    """Keep integral numbers stable across Release Please's JavaScript JSON updater."""
+    if isinstance(value, dict):
+        return {key: normalize_numbers(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [normalize_numbers(item) for item in value]
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return value
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    app = create_app(Settings(_env_file=None, environment="test"))
+    target = Path(__file__).resolve().parents[1] / "contracts" / "openapi.json"
+    content = (
+        json.dumps(normalize_numbers(app.openapi()), ensure_ascii=False, indent=2, sort_keys=True)
+        + "\n"
+    )
+    app.state.engine.dispose()
+    if args.check:
+        if not target.exists() or target.read_text(encoding="utf-8") != content:
+            raise SystemExit("OpenAPI contract is stale; run python scripts/export_openapi.py")
+    else:
+        target.parent.mkdir(exist_ok=True)
+        target.write_text(content, encoding="utf-8", newline="\n")
+        print("Exported contracts/openapi.json")
+
+
+if __name__ == "__main__":
+    main()
