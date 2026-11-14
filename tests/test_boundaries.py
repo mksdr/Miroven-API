@@ -154,3 +154,18 @@ def test_subscription_evaluation_and_admin_email_validation():
     assert expired_limits.plan == "free"
     assert expired_limits.status == "expired"
     assert expired_limits.storage_limit_bytes == 100
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "sync_storage_quota_bytes",
+        "sync_operation_limit",
+        "sync_hourly_operations",
+        "sync_hourly_bytes",
+    ],
+)
+@pytest.mark.parametrize("value", [0, -1])
+def test_sync_budgets_require_positive_settings(field, value):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, **{field: value})
