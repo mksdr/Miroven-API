@@ -56,7 +56,7 @@ def ready(db: Database):
     try:
         db.execute(text("SELECT 1"))
         revision = db.scalar(text("SELECT version_num FROM alembic_version"))
-        if revision != "0005_subscriptions":
+        if revision != "0006_sync_budgets":
             raise ApiError(503, "not_ready", "The service is not ready.")
     except SQLAlchemyError as exc:
         raise ApiError(503, "not_ready", "The service is not ready.") from exc

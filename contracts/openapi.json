@@ -992,8 +992,8 @@
           "max_entries_override": {
             "anyOf": [
               {
-                "maximum": 10000000.0,
-                "minimum": 1.0,
+                "maximum": 10000000,
+                "minimum": 1,
                 "type": "integer"
               },
               {
@@ -1045,8 +1045,8 @@
           "storage_quota_override_bytes": {
             "anyOf": [
               {
-                "maximum": 1099511627776.0,
-                "minimum": 1.0,
+                "maximum": 1099511627776,
+                "minimum": 1,
                 "type": "integer"
               },
               {
@@ -1075,8 +1075,8 @@
             "type": "integer"
           },
           "base_revision": {
-            "maximum": 2147483646.0,
-            "minimum": 0.0,
+            "maximum": 2147483646,
+            "minimum": 0,
             "title": "Base Revision",
             "type": "integer"
           },
@@ -1135,8 +1135,8 @@
             ]
           },
           "revision": {
-            "maximum": 2147483646.0,
-            "minimum": 0.0,
+            "maximum": 2147483646,
+            "minimum": 0,
             "title": "Revision",
             "type": "integer"
           }
@@ -1165,8 +1165,8 @@
             "type": "integer"
           },
           "base_revision": {
-            "maximum": 2147483646.0,
-            "minimum": 0.0,
+            "maximum": 2147483646,
+            "minimum": 0,
             "title": "Base Revision",
             "type": "integer"
           },
@@ -1221,8 +1221,8 @@
             ]
           },
           "revision": {
-            "maximum": 2147483646.0,
-            "minimum": 0.0,
+            "maximum": 2147483646,
+            "minimum": 0,
             "title": "Revision",
             "type": "integer"
           }
@@ -1465,8 +1465,8 @@
             "type": "integer"
           },
           "expected_version": {
-            "maximum": 2147483646.0,
-            "minimum": 0.0,
+            "maximum": 2147483646,
+            "minimum": 0,
             "title": "Expected Version",
             "type": "integer"
           },
@@ -1519,7 +1519,7 @@
       "url": "https://www.gnu.org/licenses/agpl-3.0.html"
     },
     "title": "Miroven API",
-    "version": "0.1.0"
+    "version": "0.1.1"
   },
   "openapi": "3.1.0",
   "paths": {
